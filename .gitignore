@@ -1,1 +1,8 @@
 todo.txt
+.env
+proto/gen/
+node_modules/
+.DS_Store
+*.exe
+*.out
+*.log

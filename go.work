@@ -1,9 +1,4 @@
-go 1.26.2
+go 1.22
 
 use (
-	./apps/gateway
-	./apps/submission
-	./apps/sandbox
-	./apps/bots
-	./apps/leaderboard
 )

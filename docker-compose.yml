@@ -1,0 +1,81 @@
+version: "3.9"
+
+networks:
+  tradebench:
+  sandbox-net:
+    # isolated network for sandbox containers
+    internal: true # no internet access from sandbox
+
+volumes:
+  redpanda-data:
+  timescale-data:
+  redis-data:
+  minio-data:
+
+services:
+  redpanda:
+    image: redpandadata/redpanda:v23.3.5
+    command:
+      - redpanda start
+      - --smp 1
+      - --memory 512M
+      - --overprovisioned
+      - --kafka-addr PLAINTEXT://0.0.0.0:9092
+      - --advertise-kafka-addr PLAINTEXT://redpanda:9092
+    ports: [ "9092:9092", "9644:9644" ]
+    volumes: [ redpanda-data:/var/lib/redpanda/data ]
+    networks: [ tradebench ]
+    healthcheck:
+      test: [ "CMD", "rpk", "cluster", "health" ]
+      interval: 5s
+      retries: 10
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    environment:
+      POSTGRES_DB: tradebench
+      POSTGRES_USER: tradebench
+      POSTGRES_PASSWORD: tradebench
+    ports: [ "5432:5432" ]
+    volumes: [ timescale-data:/var/lib/postgresql/data ]
+    networks: [ tradebench ]
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U tradebench" ]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: [ "6379:6379" ]
+    volumes: [ redis-data:/data ]
+    networks: [ tradebench ]
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: tradebench
+      MINIO_ROOT_PASSWORD: tradebench123
+    ports: [ "9005:9000", "9006:9001" ]
+    volumes: [ minio-data:/data ]
+    networks: [ tradebench ]
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 5s
+      retries: 10
+
+  # Redpanda topic initialiser (runs once, then exits)
+  redpanda-init:
+    image: redpandadata/redpanda:v23.3.5
+    depends_on:
+      redpanda: { condition: service_healthy }
+    networks: [ tradebench ]
+    entrypoint: >
+      bash -c "
+        rpk topic create submission.queued run.started telemetry.raw run.completed score.updated
+          --brokers redpanda:9092 --partitions 6 --replicas 1
+      "

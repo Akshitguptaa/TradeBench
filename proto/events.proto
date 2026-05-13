@@ -1,0 +1,49 @@
+syntax = "proto3";
+package tradebench;
+option go_package = "github.com/tradebench/proto";
+
+message SubmissionEvent {
+  string submission_id = 1;
+  string contestant_id = 2;
+  string s3_key         = 3;
+  string language        = 4; // "cpp" | "rust" | "go"
+  int64  submitted_at    = 5; // unix millis
+}
+
+message RunStartedEvent {
+  string run_id          = 1;
+  string submission_id   = 2;
+  string contestant_id   = 3;
+  string sandbox_address = 4; // host:port inside cluster VLAN
+  int32  target_rps      = 5;
+  int32  duration_secs   = 6;
+  string protocol        = 7; // "rest" | "websocket" | "fix"
+}
+
+message TelemetryEvent {
+  string run_id       = 1;
+  string bot_id       = 2;
+  string order_id     = 3;
+  int64  sent_at_ns   = 4; // nanoseconds epoch
+  int64  ack_at_ns    = 5;
+  bool   correct_fill = 6;
+  string order_type   = 7; // "limit" | "market" | "cancel"
+  bool   rejected     = 8;
+}
+
+message RunCompletedEvent {
+  string run_id        = 1;
+  string contestant_id = 2;
+  double p50_ms        = 3;
+  double p90_ms        = 4;
+  double p99_ms        = 5;
+  int64  max_tps       = 6;
+  double correctness   = 7; // 0.0 – 1.0
+}
+
+message ScoreUpdatedEvent {
+  string contestant_id = 1;
+  string run_id        = 2;
+  double composite     = 3;
+  int32  rank          = 4;
+}
