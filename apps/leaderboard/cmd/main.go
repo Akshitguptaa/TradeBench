@@ -1,8 +1,13 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 func main() {
 	fmt.Println("leaderboard service started")
-	select {}
+	for {
+		time.Sleep(time.Hour)
+	}
 }
