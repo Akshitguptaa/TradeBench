@@ -1,7 +1,8 @@
-go 1.25.0
+go 1.26.3
 
 use (
 	./apps/bots
+	./apps/dummy-orderbook
 	./apps/gateway
 	./apps/ingester
 	./apps/leaderboard
@@ -9,4 +10,5 @@ use (
 	./apps/scorer
 	./apps/submission
 	./proto
+	./tests
 )
