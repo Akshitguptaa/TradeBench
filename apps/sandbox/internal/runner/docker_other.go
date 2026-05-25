@@ -8,18 +8,11 @@ import (
 	"fmt"
 )
 
-// ErrUnsupportedPlatform is returned when sandbox operations are attempted on
-// a non-Linux platform. gVisor (runsc) and the Docker SDK's named-pipe code
-// require Linux.
 var ErrUnsupportedPlatform = errors.New("sandbox runner requires Linux")
 
-// stubDockerClient is a no-op implementation that allows compilation on
-// non-Linux platforms while returning clear errors at runtime.
+// stub so the project compiles on non-linux (macOS, CI, etc) — all operations return an error
 type stubDockerClient struct{}
 
-// New creates a Runner with a stub Docker client on non-Linux platforms.
-// The returned Runner will compile and can be wired into the application, but
-// all container operations will return ErrUnsupportedPlatform at runtime.
 func New(cfg SandboxConfig) (*Runner, error) {
 	return &Runner{
 		docker: &stubDockerClient{},
@@ -51,5 +44,4 @@ func (s *stubDockerClient) removeContainer(_ context.Context, _ string) error {
 	return ErrUnsupportedPlatform
 }
 
-// Verify interface satisfaction at compile time.
 var _ dockerClient = (*stubDockerClient)(nil)

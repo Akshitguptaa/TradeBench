@@ -1,4 +1,3 @@
-// Package config loads sandbox-service configuration from environment variables.
 package config
 
 import (
@@ -6,15 +5,14 @@ import (
 	"strconv"
 )
 
-// Config holds all sandbox service configuration values.
 type Config struct {
-	Port string // HTTP listen port for health endpoint (default "8082")
+	Port string
 
 	// Kafka
-	KafkaBrokers  string // comma-separated broker list
-	ConsumeTopic  string // topic to consume (default "submission.queued")
-	ProduceTopic  string // topic to publish (default "run.started")
-	ConsumerGroup string // consumer group ID (default "sandbox-group")
+	KafkaBrokers  string
+	ConsumeTopic  string
+	ProduceTopic  string
+	ConsumerGroup string
 
 	// MinIO
 	MinioEndpoint  string
@@ -23,26 +21,25 @@ type Config struct {
 	MinioBucket    string
 	MinioUseSSL    bool
 
-	// Docker / Sandbox
-	SandboxImage     string // base image (default "tradebench/sandbox-base:latest")
-	SandboxNetwork   string // Docker network (default "sandbox-net")
-	SandboxRuntime   string // OCI runtime (default "runsc")
-	MaxConcurrent    int    // max concurrent sandboxes (default 4)
-	HealthTimeoutSec int    // health-check timeout in seconds (default 30)
+	// Sandbox
+	SandboxImage     string
+	SandboxNetwork   string
+	SandboxRuntime   string
+	MaxConcurrent    int
+	HealthTimeoutSec int
 
 	// Resource limits
-	CPUQuota    int64 // CPU quota (default 200000 = 2 vCPU)
-	CPUPeriod   int64 // CPU period (default 100000)
-	MemoryBytes int64 // hard memory limit (default 512MB)
-	PidsLimit   int64 // max PIDs (default 256)
+	CPUQuota    int64
+	CPUPeriod   int64
+	MemoryBytes int64
+	PidsLimit   int64
 
 	// Sandbox run defaults
-	DefaultTargetRPS   int    // default RPS for load test (default 1000)
-	DefaultDurationSec int    // default duration in seconds (default 60)
-	DefaultProtocol    string // default protocol (default "rest")
+	DefaultTargetRPS   int
+	DefaultDurationSec int
+	DefaultProtocol    string
 }
 
-// Load reads configuration from the environment with sensible defaults.
 func Load() Config {
 	return Config{
 		Port:          envOr("SANDBOX_PORT", "8082"),

@@ -12,18 +12,17 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
 )
 
-// realDockerClient wraps the Docker SDK client.
 type realDockerClient struct {
 	cli *client.Client
 }
 
-// New creates a Runner using the real Docker SDK client.
 func New(cfg SandboxConfig) (*Runner, error) {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -35,13 +34,14 @@ func New(cfg SandboxConfig) (*Runner, error) {
 	}, nil
 }
 
+// creates a hardened container: all caps dropped, no privilege escalation, cgroup limits enforced
 func (d *realDockerClient) createContainer(ctx context.Context, cfg SandboxConfig, containerName string) (string, error) {
 	pidsLimit := cfg.PidsLimit
 
 	resp, err := d.cli.ContainerCreate(ctx,
 		&container.Config{
 			Image: cfg.Image,
-			Cmd:   []string{"/opt/submission/binary"},
+			Cmd:   []string{"/opt/binary"},
 			ExposedPorts: nat.PortSet{
 				"8080/tcp": {},
 			},
@@ -74,6 +74,7 @@ func (d *realDockerClient) createContainer(ctx context.Context, cfg SandboxConfi
 	return resp.ID, nil
 }
 
+// docker API requires a tar archive to copy files into a container
 func (d *realDockerClient) copyToContainer(ctx context.Context, containerID, srcPath, dstDir string) error {
 	content, err := os.ReadFile(srcPath)
 	if err != nil {
@@ -97,13 +98,14 @@ func (d *realDockerClient) copyToContainer(ctx context.Context, containerID, src
 		return err
 	}
 
-	return d.cli.CopyToContainer(ctx, containerID, dstDir, &buf, container.CopyToContainerOptions{})
+	return d.cli.CopyToContainer(ctx, containerID, dstDir, &buf, types.CopyToContainerOptions{})
 }
 
 func (d *realDockerClient) startContainer(ctx context.Context, containerID string) error {
 	return d.cli.ContainerStart(ctx, containerID, container.StartOptions{})
 }
 
+// tries named network first, falls back to default bridge IP
 func (d *realDockerClient) inspectContainerIP(ctx context.Context, containerID, networkName string) (string, error) {
 	inspect, err := d.cli.ContainerInspect(ctx, containerID)
 	if err != nil {
@@ -127,11 +129,9 @@ func (d *realDockerClient) removeContainer(ctx context.Context, containerID stri
 	return d.cli.ContainerRemove(ctx, containerID, container.RemoveOptions{Force: true})
 }
 
-// Close releases the Docker client connection.
 func (d *realDockerClient) Close() error {
 	return d.cli.Close()
 }
 
-// Verify interface satisfaction at compile time.
 var _ dockerClient = (*realDockerClient)(nil)
 var _ io.Closer = (*realDockerClient)(nil)

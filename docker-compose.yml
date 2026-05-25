@@ -1,81 +1,153 @@
-
-
 networks:
-  tradebench:
+  tradebench: null
   sandbox-net:
-    # isolated network for sandbox containers
-    internal: true # no internet access from sandbox
-
+    internal: true
 volumes:
-  redpanda-data:
-  timescale-data:
-  redis-data:
-  minio-data:
-
+  redpanda-data: null
+  timescale-data: null
+  redis-data: null
+  minio-data: null
 services:
   redpanda:
     image: redpandadata/redpanda:v23.3.5
     command:
-      - redpanda start
-      - --smp 1
-      - --memory 512M
-      - --overprovisioned
-      - --kafka-addr PLAINTEXT://0.0.0.0:9092
-      - --advertise-kafka-addr PLAINTEXT://redpanda:9092
-    ports: [ "9092:9092", "9644:9644" ]
-    volumes: [ redpanda-data:/var/lib/redpanda/data ]
-    networks: [ tradebench ]
+    - redpanda start
+    - --smp 1
+    - --memory 512M
+    - --overprovisioned
+    - --kafka-addr PLAINTEXT://0.0.0.0:9092
+    - --advertise-kafka-addr PLAINTEXT://redpanda:9092
+    ports:
+    - 9092:9092
+    - 9644:9644
+    volumes:
+    - redpanda-data:/var/lib/redpanda/data
+    networks:
+    - tradebench
     healthcheck:
-      test: [ "CMD", "rpk", "cluster", "health" ]
+      test:
+      - CMD
+      - rpk
+      - cluster
+      - health
       interval: 5s
       retries: 10
-
   timescaledb:
     image: timescale/timescaledb:latest-pg15
     environment:
       POSTGRES_DB: tradebench
       POSTGRES_USER: tradebench
       POSTGRES_PASSWORD: tradebench
-    ports: [ "5432:5432" ]
-    volumes: [ timescale-data:/var/lib/postgresql/data ]
-    networks: [ tradebench ]
+    ports:
+    - 5432:5432
+    volumes:
+    - timescale-data:/var/lib/postgresql/data
+    networks:
+    - tradebench
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U tradebench" ]
+      test:
+      - CMD-SHELL
+      - pg_isready -U tradebench
       interval: 5s
       retries: 10
-
   redis:
     image: redis:7-alpine
-    ports: [ "6379:6379" ]
-    volumes: [ redis-data:/data ]
-    networks: [ tradebench ]
+    ports:
+    - 6379:6379
+    volumes:
+    - redis-data:/data
+    networks:
+    - tradebench
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test:
+      - CMD
+      - redis-cli
+      - ping
       interval: 5s
       retries: 10
-
   minio:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: tradebench
       MINIO_ROOT_PASSWORD: tradebench123
-    ports: [ "9005:9000", "9006:9001" ]
-    volumes: [ minio-data:/data ]
-    networks: [ tradebench ]
+    ports:
+    - 9005:9000
+    - 9006:9001
+    volumes:
+    - minio-data:/data
+    networks:
+    - tradebench
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      test:
+      - CMD
+      - curl
+      - -f
+      - http://localhost:9000/minio/health/live
       interval: 5s
       retries: 10
-
-  # Redpanda topic initialiser (runs once, then exits)
   redpanda-init:
     image: redpandadata/redpanda:v23.3.5
     depends_on:
-      redpanda: { condition: service_healthy }
-    networks: [ tradebench ]
-    entrypoint: >
-      bash -c "
-        rpk topic create submission.queued run.started telemetry.raw run.completed score.updated
-          --brokers redpanda:9092 --partitions 6 --replicas 1
-      "
+      redpanda:
+        condition: service_healthy
+    networks:
+    - tradebench
+    entrypoint: "bash -c \"\n  rpk topic create submission.queued run.started telemetry.raw\
+      \ run.completed score.updated --brokers redpanda:9092 --partitions 6 --replicas\
+      \ 1 || true\n\"\n"
+  gateway:
+    build:
+      context: apps/gateway
+      dockerfile: Dockerfile
+    ports:
+    - 8080:8080
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    networks:
+    - tradebench
+  submission:
+    build:
+      context: apps/submission
+      dockerfile: Dockerfile
+    ports:
+    - 8081:8081
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redpanda-init:
+        condition: service_completed_successfully
+    networks:
+    - tradebench
+    environment:
+      MINIO_ACCESS_KEY: tradebench
+      MINIO_SECRET_KEY: tradebench123
+      KAFKA_BROKERS: redpanda:9092
+  sandbox:
+    build:
+      context: apps/sandbox
+      dockerfile: Dockerfile
+    environment:
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: tradebench
+      MINIO_SECRET_KEY: tradebench123
+      MINIO_BUCKET: tradebench
+      SANDBOX_IMAGE: tradebench/sandbox-base:latest
+      SANDBOX_NETWORK: tradebench_sandbox-net
+      SANDBOX_RUNTIME: runc
+      KAFKA_BROKERS: redpanda:9092
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redpanda-init:
+        condition: service_completed_successfully
+    networks:
+    - tradebench
+    - sandbox-net
