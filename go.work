@@ -1,12 +1,12 @@
 go 1.25.0
 
 use (
-	./proto
 	./apps/bots
 	./apps/gateway
 	./apps/ingester
 	./apps/leaderboard
+	./apps/sandbox
 	./apps/scorer
 	./apps/submission
-	./apps/sandbox
+	./proto
 )
