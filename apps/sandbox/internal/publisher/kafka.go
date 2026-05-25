@@ -1,5 +1,3 @@
-// Package publisher wraps a Kafka writer for publishing RunStartedEvent
-// messages to the run.started topic.
 package publisher
 
 import (
@@ -12,7 +10,7 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-// RunStartedEvent is the JSON payload published to the run.started topic.
+// tells downstream services (bots, scorer) that a sandbox is ready for load testing
 type RunStartedEvent struct {
 	RunID          string `json:"run_id"`
 	SubmissionID   string `json:"submission_id"`
@@ -23,12 +21,10 @@ type RunStartedEvent struct {
 	Protocol       string `json:"protocol"`
 }
 
-// KafkaPublisher publishes RunStartedEvent messages to Kafka.
 type KafkaPublisher struct {
 	writer *kafka.Writer
 }
 
-// NewKafkaPublisher creates a Kafka producer for the given brokers and topic.
 func NewKafkaPublisher(brokers, topic string) *KafkaPublisher {
 	w := &kafka.Writer{
 		Addr:         kafka.TCP(strings.Split(brokers, ",")...),
@@ -40,7 +36,6 @@ func NewKafkaPublisher(brokers, topic string) *KafkaPublisher {
 	return &KafkaPublisher{writer: w}
 }
 
-// Publish serialises the event as JSON and writes it to Kafka.
 func (p *KafkaPublisher) Publish(ctx context.Context, event RunStartedEvent) error {
 	data, err := json.Marshal(event)
 	if err != nil {
@@ -56,7 +51,6 @@ func (p *KafkaPublisher) Publish(ctx context.Context, event RunStartedEvent) err
 	return nil
 }
 
-// Close flushes and closes the underlying Kafka writer.
 func (p *KafkaPublisher) Close() error {
 	return p.writer.Close()
 }

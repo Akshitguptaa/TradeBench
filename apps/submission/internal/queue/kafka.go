@@ -1,5 +1,3 @@
-// Package queue wraps the segmentio/kafka-go writer for publishing
-// submission events to Kafka.
 package queue
 
 import (
@@ -12,34 +10,31 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-// SubmissionEvent is the JSON payload published to the submission.queued topic.
+// SubmissionEvent represents a new code submission queued for sandbox execution
 type SubmissionEvent struct {
 	SubmissionID string `json:"submission_id"`
 	ContestantID string `json:"contestant_id"`
 	S3Key        string `json:"s3_key"`
 	Language     string `json:"language"`
-	SubmittedAt  int64  `json:"submitted_at"` // unix millis
+	SubmittedAt  int64  `json:"submitted_at"`
 }
 
-// KafkaProducer is a thin wrapper around kafka.Writer.
 type KafkaProducer struct {
 	writer *kafka.Writer
 }
 
-// NewKafkaProducer creates a Kafka producer for the given brokers and topic.
+// NewKafkaProducer creates a producer that routes messages to the specified topic
 func NewKafkaProducer(brokers, topic string) *KafkaProducer {
 	w := &kafka.Writer{
 		Addr:         kafka.TCP(strings.Split(brokers, ",")...),
 		Topic:        topic,
 		Balancer:     &kafka.LeastBytes{},
-		BatchTimeout: 10 * time.Millisecond, // low latency for dev
+		BatchTimeout: 10 * time.Millisecond,
 		RequiredAcks: kafka.RequireOne,
 	}
 	return &KafkaProducer{writer: w}
 }
 
-// Publish serialises the event as JSON and writes it to Kafka. The message
-// key is set to the submission_id for partition affinity.
 func (p *KafkaProducer) Publish(ctx context.Context, event SubmissionEvent) error {
 	data, err := json.Marshal(event)
 	if err != nil {
@@ -57,7 +52,6 @@ func (p *KafkaProducer) Publish(ctx context.Context, event SubmissionEvent) erro
 	return nil
 }
 
-// Close flushes and closes the underlying Kafka writer.
 func (p *KafkaProducer) Close() error {
 	return p.writer.Close()
 }

@@ -40,13 +40,12 @@ const contestantKey contextKey = "contestant_id"
 func main() {
 	cfg := config.Load()
 
-	// --- Auth ---
 	jwtAuth := auth.New(cfg.JWTSecret, cfg.JWTExpiry)
 
-	// --- Rate limiters ---
 	globalLimiter := ratelimit.New(cfg.GlobalRPM)
 	submissionLimiter := ratelimit.New(cfg.SubmissionRPM)
 
+	// rate limiting is per-contestant, so we extract the ID from the JWT-populated context
 	keyFn := func(r *http.Request) string {
 		if v, ok := r.Context().Value(contestantKey).(string); ok {
 			return v
@@ -54,23 +53,21 @@ func main() {
 		return ""
 	}
 
-	// --- Reverse proxies ---
+	// reverse proxies to backend services
 	submissionProxy := proxy.NewProxy(cfg.SubmissionURL)
 	leaderboardProxy := proxy.NewProxy(cfg.LeaderboardURL)
 	scorerProxy := proxy.NewProxy(cfg.ScorerURL)
 	ingesterProxy := proxy.NewProxy(cfg.IngesterURL)
 
-	// --- Mux ---
 	mux := http.NewServeMux()
 
-	// Health (no auth, no rate limit)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})
 
-	// Issue JWT (dev mode)
+	// issue a short-lived JWT so contestants can authenticate subsequent requests
 	mux.HandleFunc("/api/v1/auth/token", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
@@ -98,7 +95,6 @@ func main() {
 		})
 	})
 
-	// Submissions — POST (create) and GET (status)
 	mux.HandleFunc("/api/v1/submissions", func(w http.ResponseWriter, r *http.Request) {
 		submissionProxy.ServeHTTP(w, r)
 	})
@@ -106,29 +102,22 @@ func main() {
 		submissionProxy.ServeHTTP(w, r)
 	})
 
-	// Runs — GET status + metrics
 	mux.HandleFunc("/api/v1/runs/", func(w http.ResponseWriter, r *http.Request) {
-		// Route to ingester for raw data, scorer for computed metrics.
-		// For now, proxy to ingester; scorer augments via Kafka.
 		ingesterProxy.ServeHTTP(w, r)
 		_ = scorerProxy // available when scorer endpoint is added
 	})
 
-	// Leaderboard — REST fallback
 	mux.HandleFunc("/api/v1/leaderboard", func(w http.ResponseWriter, r *http.Request) {
 		leaderboardProxy.ServeHTTP(w, r)
 	})
 
-	// Leaderboard — WebSocket stream
 	mux.HandleFunc("/ws/leaderboard", func(w http.ResponseWriter, r *http.Request) {
 		leaderboardProxy.ServeHTTP(w, r)
 	})
 
-	// --- Middleware chain ---
-	// Build the final handler: JWT auth → rate limit → mux
 	var handler http.Handler = mux
 
-	// Submission-specific rate limit (applied before global, checked on path)
+	// submission-specific rate limit
 	handler = submissionRateLimit(handler, submissionLimiter, keyFn)
 
 	// Global rate limit
@@ -151,8 +140,7 @@ func main() {
 	}
 }
 
-// jwtMiddleware validates the Bearer token on all routes except /health and
-// injects the contestant_id into the request context.
+// skip auth for health checks and the token endpoint itself
 func jwtMiddleware(next http.Handler, jwtAuth *auth.JWTAuth) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Skip auth for health endpoint
@@ -161,7 +149,6 @@ func jwtMiddleware(next http.Handler, jwtAuth *auth.JWTAuth) http.Handler {
 			return
 		}
 
-		// Allow token issuance without existing JWT
 		if r.URL.Path == "/api/v1/auth/token" {
 			next.ServeHTTP(w, r)
 			return
@@ -185,13 +172,13 @@ func jwtMiddleware(next http.Handler, jwtAuth *auth.JWTAuth) http.Handler {
 			return
 		}
 
+		// stash the contestant ID in context so rate limiters and handlers can use it
 		ctx := context.WithValue(r.Context(), contestantKey, contestantID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-// submissionRateLimit applies a stricter rate limit specifically to the
-// /api/v1/submissions path.
+// submissionRateLimit applies a stricter rate limit specifically to the /api/v1/submissions path.
 func submissionRateLimit(next http.Handler, lim *ratelimit.Limiter, keyFn ratelimit.KeyFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/api/v1/submissions") {

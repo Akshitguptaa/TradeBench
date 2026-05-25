@@ -53,6 +53,7 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Enforce max body size
+	// limit request body size to prevent memory exhaustion
 	r.Body = http.MaxBytesReader(w, r.Body, h.maxFileBytes+1024) // +1KB for form overhead
 
 	if err := r.ParseMultipartForm(h.maxFileBytes); err != nil {
@@ -62,6 +63,7 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	defer r.MultipartForm.RemoveAll()
 
 	// --- Extract fields ---
+	// extract metadata from the multipart form
 	language := r.FormValue("language")
 	contestantID := r.FormValue("contestant_id")
 	if language == "" || contestantID == "" {
@@ -84,6 +86,7 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// --- Validate ---
+	// validate file content (size, mime type, language)
 	result, err := validator.Validate(content, language, h.maxFileBytes)
 	if err != nil {
 		http.Error(w, fmt.Sprintf(`{"error":%q}`, err.Error()), http.StatusBadRequest)
@@ -94,9 +97,11 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		header.Filename, result.MIME, result.Size, result.Hash)
 
 	// --- Store in MinIO ---
+	// generate a unique ID for the submission
 	submissionID := uuid.New().String()
 	ctx := context.Background()
 
+	// upload the binary to MinIO
 	s3Key, err := h.store.Upload(ctx, submissionID, header.Filename, bytes.NewReader(content), result.Size)
 	if err != nil {
 		log.Printf("upload: store error: %v", err)
@@ -115,6 +120,7 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		SubmittedAt:  time.Now().UnixMilli(),
 	}
 
+	// publish an event to Kafka so the sandbox can pick it up
 	if err := h.producer.Publish(ctx, event); err != nil {
 		log.Printf("upload: kafka publish error: %v", err)
 		// The file is stored; we can still return success and retry the event.

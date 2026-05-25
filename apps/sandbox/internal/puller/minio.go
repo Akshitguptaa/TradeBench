@@ -1,5 +1,3 @@
-// Package puller downloads submission binaries from MinIO to a local temporary
-// directory for injection into sandbox containers.
 package puller
 
 import (
@@ -14,14 +12,12 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
-// MinioPuller downloads objects from MinIO.
 type MinioPuller struct {
 	client *minio.Client
 	bucket string
-	tmpDir string // local directory for downloaded binaries
+	tmpDir string
 }
 
-// NewMinioPuller creates a puller that downloads from the specified MinIO bucket.
 func NewMinioPuller(endpoint, accessKey, secretKey, bucket string, useSSL bool) (*MinioPuller, error) {
 	client, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
@@ -31,6 +27,7 @@ func NewMinioPuller(endpoint, accessKey, secretKey, bucket string, useSSL bool) 
 		return nil, fmt.Errorf("minio client init: %w", err)
 	}
 
+	// each sandbox run gets its own subdirectory under this temp root
 	tmpDir, err := os.MkdirTemp("", "sandbox-binaries-*")
 	if err != nil {
 		return nil, fmt.Errorf("create tmp dir: %w", err)
@@ -40,8 +37,7 @@ func NewMinioPuller(endpoint, accessKey, secretKey, bucket string, useSSL bool) 
 	return &MinioPuller{client: client, bucket: bucket, tmpDir: tmpDir}, nil
 }
 
-// Pull downloads the object at s3Key to a local temporary file and returns
-// the path to the downloaded file.
+// Pull downloads the submitted binary from minio to a local temp file so docker can copy it in
 func (p *MinioPuller) Pull(ctx context.Context, submissionID, s3Key string) (string, error) {
 	obj, err := p.client.GetObject(ctx, p.bucket, s3Key, minio.GetObjectOptions{})
 	if err != nil {
@@ -67,8 +63,7 @@ func (p *MinioPuller) Pull(ctx context.Context, submissionID, s3Key string) (str
 		return "", fmt.Errorf("download %s: %w", s3Key, err)
 	}
 
-	// Make binary executable
-	if err := os.Chmod(localPath, 0755); err != nil {
+	if err := os.Chmod(localPath, 0755); err != nil { // needs to be executable inside the container
 		return "", fmt.Errorf("chmod binary: %w", err)
 	}
 
@@ -76,7 +71,6 @@ func (p *MinioPuller) Pull(ctx context.Context, submissionID, s3Key string) (str
 	return localPath, nil
 }
 
-// Cleanup removes a submission's temporary directory.
 func (p *MinioPuller) Cleanup(submissionID string) {
 	dir := filepath.Join(p.tmpDir, submissionID)
 	if err := os.RemoveAll(dir); err != nil {
@@ -84,7 +78,6 @@ func (p *MinioPuller) Cleanup(submissionID string) {
 	}
 }
 
-// Close removes the entire temporary directory.
 func (p *MinioPuller) Close() error {
 	return os.RemoveAll(p.tmpDir)
 }

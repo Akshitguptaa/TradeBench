@@ -14,7 +14,7 @@ import (
 func main() {
 	cfg := config.Load()
 
-	// --- MinIO ---
+	// MinIO
 	minioStore, err := store.NewMinIO(
 		cfg.MinioEndpoint,
 		cfg.MinioAccessKey,
@@ -26,14 +26,14 @@ func main() {
 		log.Fatalf("minio init: %v", err)
 	}
 
-	// --- Kafka ---
+	// Kafka
 	producer := queue.NewKafkaProducer(cfg.KafkaBrokers, cfg.KafkaTopic)
 	defer producer.Close()
 
-	// --- Handler ---
+	// Handler
 	uploadHandler := handler.NewUploadHandler(minioStore, producer, cfg.MaxFileSizeMB)
 
-	// --- Routes ---
+	// Routes
 	mux := http.NewServeMux()
 	mux.Handle("/api/v1/submissions", uploadHandler)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {

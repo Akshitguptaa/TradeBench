@@ -1,5 +1,3 @@
-// Package consumer implements a Kafka consumer for the submission.queued topic.
-// On each message it orchestrates: pull binary → spawn sandbox → publish run.started.
 package consumer
 
 import (
@@ -17,7 +15,6 @@ import (
 	"github.com/tradebench/sandbox/internal/runner"
 )
 
-// SubmissionEvent mirrors the JSON payload from the submission service.
 type SubmissionEvent struct {
 	SubmissionID string `json:"submission_id"`
 	ContestantID string `json:"contestant_id"`
@@ -26,7 +23,6 @@ type SubmissionEvent struct {
 	SubmittedAt  int64  `json:"submitted_at"`
 }
 
-// Consumer reads from the submission.queued Kafka topic and processes each
 // submission through the sandbox pipeline.
 type Consumer struct {
 	reader    *kafka.Reader
@@ -35,25 +31,21 @@ type Consumer struct {
 	publisher *publisher.KafkaPublisher
 	sem       chan struct{} // concurrency semaphore
 
-	// Run defaults
 	defaultTargetRPS   int
 	defaultDurationSec int
 	defaultProtocol    string
 }
 
-// Config bundles the parameters needed to create a Consumer.
 type Config struct {
-	Brokers        string
-	Topic          string
-	GroupID        string
-	MaxConcurrent  int
-	TargetRPS      int
-	DurationSec    int
-	Protocol       string
+	Brokers       string
+	Topic         string
+	GroupID       string
+	MaxConcurrent int
+	TargetRPS     int
+	DurationSec   int
+	Protocol      string
 }
 
-// New creates a Consumer wired to Kafka, MinIO puller, Docker runner, and
-// the run.started publisher.
 func New(cfg Config, p *puller.MinioPuller, r *runner.Runner, pub *publisher.KafkaPublisher) *Consumer {
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  strings.Split(cfg.Brokers, ","),
@@ -75,7 +67,7 @@ func New(cfg Config, p *puller.MinioPuller, r *runner.Runner, pub *publisher.Kaf
 	}
 }
 
-// Run starts the consume loop. It blocks until ctx is cancelled.
+// Run blocks forever, reading submission events and dispatching them to sandbox workers.
 func (c *Consumer) Run(ctx context.Context) error {
 	log.Println("consumer: starting consume loop")
 	for {
@@ -91,14 +83,13 @@ func (c *Consumer) Run(ctx context.Context) error {
 		var event SubmissionEvent
 		if err := json.Unmarshal(msg.Value, &event); err != nil {
 			log.Printf("consumer: unmarshal error: %v", err)
-			_ = c.reader.CommitMessages(ctx, msg)
+			_ = c.reader.CommitMessages(ctx, msg) // skip bad messages so we don't get stuck
 			continue
 		}
 
 		log.Printf("consumer: received submission_id=%s", event.SubmissionID)
 
-		// Acquire semaphore slot (blocks if at max concurrency)
-		c.sem <- struct{}{}
+		c.sem <- struct{}{} // blocks if we're already at max concurrency
 
 		go func(m kafka.Message, evt SubmissionEvent) {
 			defer func() { <-c.sem }()
@@ -114,16 +105,14 @@ func (c *Consumer) Run(ctx context.Context) error {
 	}
 }
 
-// process handles a single submission: pull → spawn → publish.
+// process handles a single submission: pull binary → spawn sandbox → tell the bots service it's ready
 func (c *Consumer) process(ctx context.Context, event SubmissionEvent) error {
-	// 1. Pull binary from MinIO
 	binaryPath, err := c.puller.Pull(ctx, event.SubmissionID, event.S3Key)
 	if err != nil {
 		return fmt.Errorf("pull binary: %w", err)
 	}
 	defer c.puller.Cleanup(event.SubmissionID)
 
-	// 2. Spawn sandbox container
 	containerID, address, err := c.runner.SpawnSandbox(ctx, event.SubmissionID, binaryPath)
 	if err != nil {
 		return fmt.Errorf("spawn sandbox: %w", err)
@@ -131,7 +120,6 @@ func (c *Consumer) process(ctx context.Context, event SubmissionEvent) error {
 
 	log.Printf("consumer: sandbox spawned container=%s address=%s", containerID[:12], address)
 
-	// 3. Publish RunStartedEvent
 	runID := uuid.New().String()
 	runEvent := publisher.RunStartedEvent{
 		RunID:          runID,
@@ -144,7 +132,6 @@ func (c *Consumer) process(ctx context.Context, event SubmissionEvent) error {
 	}
 
 	if err := c.publisher.Publish(ctx, runEvent); err != nil {
-		// Sandbox is running but event failed — log but don't terminate
 		return fmt.Errorf("publish run.started: %w", err)
 	}
 
@@ -152,7 +139,6 @@ func (c *Consumer) process(ctx context.Context, event SubmissionEvent) error {
 	return nil
 }
 
-// Close shuts down the Kafka reader.
 func (c *Consumer) Close() error {
 	return c.reader.Close()
 }

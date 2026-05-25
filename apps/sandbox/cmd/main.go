@@ -20,7 +20,6 @@ import (
 func main() {
 	cfg := config.Load()
 
-	// --- MinIO puller ---
 	pull, err := puller.NewMinioPuller(
 		cfg.MinioEndpoint,
 		cfg.MinioAccessKey,
@@ -33,7 +32,7 @@ func main() {
 	}
 	defer pull.Close()
 
-	// --- Docker runner ---
+	// spins up isolated containers to execute submissions
 	run, err := runner.New(runner.SandboxConfig{
 		Image:      cfg.SandboxImage,
 		Runtime:    cfg.SandboxRuntime,
@@ -48,11 +47,11 @@ func main() {
 		log.Fatalf("docker runner init: %v", err)
 	}
 
-	// --- Kafka publisher ---
+	// publishes run.started events for downstream scoring
 	pub := publisher.NewKafkaPublisher(cfg.KafkaBrokers, cfg.ProduceTopic)
 	defer pub.Close()
 
-	// --- Kafka consumer ---
+	// ties it all together: consume submission events, pull binary, run in sandbox, publish result
 	cons := consumer.New(consumer.Config{
 		Brokers:       cfg.KafkaBrokers,
 		Topic:         cfg.ConsumeTopic,
@@ -64,7 +63,6 @@ func main() {
 	}, pull, run, pub)
 	defer cons.Close()
 
-	// --- Health endpoint ---
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -78,7 +76,7 @@ func main() {
 		WriteTimeout: 5 * time.Second,
 	}
 
-	// --- Graceful shutdown ---
+	// graceful shutdown: cancel ctx on SIGINT/SIGTERM so consumer stops cleanly
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -92,7 +90,7 @@ func main() {
 		srv.Shutdown(context.Background())
 	}()
 
-	// Start consumer in background
+	// consumer loop runs in the background; main thread blocks on the health server
 	go func() {
 		if err := cons.Run(ctx); err != nil && ctx.Err() == nil {
 			log.Fatalf("consumer error: %v", err)
