@@ -151,3 +151,27 @@ services:
     networks:
     - tradebench
     - sandbox-net
+  bots:
+    build:
+      context: apps/bots
+      dockerfile: Dockerfile
+    networks:
+    - tradebench
+  ingester:
+    build:
+      context: apps/ingester
+      dockerfile: Dockerfile
+    networks:
+    - tradebench
+  leaderboard:
+    build:
+      context: apps/leaderboard
+      dockerfile: Dockerfile
+    networks:
+    - tradebench
+  scorer:
+    build:
+      context: apps/scorer
+      dockerfile: Dockerfile
+    networks:
+    - tradebench

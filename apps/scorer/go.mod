@@ -1,3 +1,3 @@
-module github.com/tradebench/apps/scorer
+module github.com/tradebench/scorer
 
 go 1.23

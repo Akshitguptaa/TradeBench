@@ -1,3 +1,3 @@
-module github.com/tradebench/apps/bots
+module github.com/tradebench/bots
 
 go 1.23

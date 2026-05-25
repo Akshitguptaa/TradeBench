@@ -1,3 +1,3 @@
-module github.com/tradebench/apps/ingester
+module github.com/tradebench/ingester
 
 go 1.23

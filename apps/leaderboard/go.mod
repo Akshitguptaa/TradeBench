@@ -1,3 +1,3 @@
-module github.com/tradebench/apps/leaderboard
+module github.com/tradebench/leaderboard
 
 go 1.23
