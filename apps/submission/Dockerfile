@@ -1,5 +1,4 @@
-# ---- Build stage ----
-FROM golang:1.22-alpine AS builder
+FROM golang:alpine AS builder
 
 WORKDIR /app
 
@@ -10,7 +9,6 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o /submission ./cmd/...
 
-# ---- Runtime stage ----
 FROM gcr.io/distroless/static
 
 COPY --from=builder /submission /submission
