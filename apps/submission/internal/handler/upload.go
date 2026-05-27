@@ -14,6 +14,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/tradebench/submission/internal/queue"
+	"github.com/tradebench/submission/internal/status"
 	"github.com/tradebench/submission/internal/store"
 	"github.com/tradebench/submission/internal/validator"
 )
@@ -22,14 +23,16 @@ import (
 type UploadHandler struct {
 	store        *store.MinIO
 	producer     *queue.KafkaProducer
+	tracker      *status.Tracker
 	maxFileBytes int64
 }
 
-// NewUploadHandler creates a handler wired to the given store and Kafka producer.
-func NewUploadHandler(s *store.MinIO, p *queue.KafkaProducer, maxFileSizeMB int) *UploadHandler {
+// NewUploadHandler creates a handler wired to the given store, Kafka producer, and status tracker.
+func NewUploadHandler(s *store.MinIO, p *queue.KafkaProducer, t *status.Tracker, maxFileSizeMB int) *UploadHandler {
 	return &UploadHandler{
 		store:        s,
 		producer:     p,
+		tracker:      t,
 		maxFileBytes: int64(maxFileSizeMB) * 1024 * 1024,
 	}
 }
@@ -38,6 +41,7 @@ func NewUploadHandler(s *store.MinIO, p *queue.KafkaProducer, maxFileSizeMB int)
 type uploadResponse struct {
 	SubmissionID string `json:"submission_id"`
 	Status       string `json:"status"`
+	Hash         string `json:"sha256"`
 }
 
 // ServeHTTP processes POST multipart/form-data uploads.
@@ -129,11 +133,14 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("upload: published submission.queued submission_id=%s", submissionID)
 
-	// --- Respond ---
+	// track the submission
+	h.tracker.Set(submissionID, contestantID, status.Queued)
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
 	json.NewEncoder(w).Encode(uploadResponse{
 		SubmissionID: submissionID,
 		Status:       "queued",
+		Hash:         result.Hash,
 	})
 }

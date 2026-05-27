@@ -6,3 +6,8 @@ node_modules/
 *.exe
 *.out
 *.log
+
+vendor/
+
+.data/
+data/
