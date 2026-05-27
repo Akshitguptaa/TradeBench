@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.3'
+
+      - name: Build all Go services
+        run: |
+          for svc in gateway submission sandbox bots ingester leaderboard scorer dummy-orderbook; do
+            echo "=== Building $svc ==="
+            cd apps/$svc
+            go build -o /dev/null ./...
+            cd ../..
+          done
+
+      - name: Run tests
+        run: |
+          cd tests
+          go test -v ./...
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.3'
+
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+      - name: Run golangci-lint
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          for mod in apps/gateway apps/submission apps/sandbox apps/bots apps/ingester apps/leaderboard apps/scorer apps/dummy-orderbook tests; do
+            echo "=== Linting $mod ==="
+            cd $mod
+            golangci-lint run
+            cd -
+          done
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Images
+        run: |
+          for svc in gateway submission sandbox dummy-orderbook; do
+            echo "=== Docker Build $svc ==="
+            docker build -t tradebench/$svc:ci apps/$svc
+          done

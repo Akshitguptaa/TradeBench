@@ -10,12 +10,12 @@ func SetupRouter() *http.ServeMux {
 
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK"))
 	})
 
 	mux.HandleFunc("/orders", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status": "dummy orders"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "dummy orders"})
 	})
 
 	return mux

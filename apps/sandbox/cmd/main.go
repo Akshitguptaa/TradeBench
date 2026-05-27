@@ -66,7 +66,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})
 
 	srv := &http.Server{
@@ -87,7 +87,7 @@ func main() {
 		<-sigCh
 		log.Println("sandbox: shutting down...")
 		cancel()
-		srv.Shutdown(context.Background())
+		_ = srv.Shutdown(context.Background())
 	}()
 
 	// consumer loop runs in the background; main thread blocks on the health server

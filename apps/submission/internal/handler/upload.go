@@ -64,7 +64,7 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"request too large or invalid multipart form"}`, http.StatusBadRequest)
 		return
 	}
-	defer r.MultipartForm.RemoveAll()
+	defer func() { _ = r.MultipartForm.RemoveAll() }()
 
 	// --- Extract fields ---
 	// extract metadata from the multipart form
@@ -138,7 +138,7 @@ func (h *UploadHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(uploadResponse{
+	_ = json.NewEncoder(w).Encode(uploadResponse{
 		SubmissionID: submissionID,
 		Status:       "queued",
 		Hash:         result.Hash,
