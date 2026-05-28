@@ -13,6 +13,7 @@ import (
 	"github.com/tradebench/bots/config"
 	"github.com/tradebench/bots/internal/consumer"
 	"github.com/tradebench/bots/internal/orchestrator"
+	"github.com/tradebench/bots/internal/publisher"
 )
 
 func main() {
@@ -30,6 +31,12 @@ func main() {
 		MaxConcurrent: cfg.MaxConcurrentRuns,
 	}, handler)
 	defer func() { _ = cons.Close() }()
+
+	pub := publisher.New(publisher.Config{
+		Brokers: cfg.KafkaBrokers,
+		Topic:   cfg.ProduceTopic,
+	})
+	defer func() { _ = pub.Close() }()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -58,7 +65,7 @@ func main() {
 	}()
 
 	go func() {
-		if err := cons.Run(ctx); err != nil && ctx.Err() == nil {
+		if err := cons.Run(ctx, pub.Start); err != nil && ctx.Err() == nil {
 			log.Fatalf("bots consumer error: %v", err)
 		}
 	}()

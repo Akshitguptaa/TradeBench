@@ -65,8 +65,8 @@ func New(cfg Config, handler Handler) *Consumer {
 	}
 }
 
-// Run blocks forever, reading run.started events and dispatching them to the handler.
-func (c *Consumer) Run(ctx context.Context) error {
+	// Run blocks forever, reading run.started events and dispatching them to the handler.
+func (c *Consumer) Run(ctx context.Context, publisherStartFunc func(context.Context, <-chan TelemetryEvent)) error {
 	log.Println("bots consumer: starting consume loop")
 	for {
 		msg, err := c.reader.FetchMessage(ctx)
@@ -95,20 +95,14 @@ func (c *Consumer) Run(ctx context.Context) error {
 
 			telemetryCh := make(chan TelemetryEvent, 1000)
 
-			// drain telemetry events
-			doneCh := make(chan struct{})
-			go func() {
-				defer close(doneCh)
-				count := 0
-				for range telemetryCh {
-					count++
-				}
-				log.Printf("bots consumer: run_id=%s produced %d telemetry events", evt.RunID, count)
-			}()
+			// Start the background batch publisher for this specific run
+			publisherStartFunc(ctx, telemetryCh)
 
+			// Execute the orchestrator (which sends orders and emits telemetry to the channel)
 			c.handler(ctx, evt, telemetryCh)
+
+			// Close channel to signal publisher to flush remaining and exit its goroutine
 			close(telemetryCh)
-			<-doneCh
 
 			if err := c.reader.CommitMessages(ctx, m); err != nil {
 				log.Printf("bots consumer: commit error: %v", err)
