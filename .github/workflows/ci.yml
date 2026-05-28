@@ -26,6 +26,15 @@ jobs:
             cd ../..
           done
 
+      - name: Setup hosts for Redpanda
+        run: echo "127.0.0.1 redpanda" | sudo tee -a /etc/hosts
+
+      - name: Start integration services
+        run: docker compose up -d redpanda dummy-orderbook bots
+
+      - name: Wait for services to be ready
+        run: sleep 15
+
       - name: Run tests
         run: |
           cd tests
