@@ -158,6 +158,16 @@ services:
     build:
       context: apps/bots
       dockerfile: Dockerfile
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+    networks:
+    - tradebench
+  dummy-orderbook:
+    build:
+      context: apps/dummy-orderbook
+      dockerfile: Dockerfile
+    ports:
+    - 8080:8080
     networks:
     - tradebench
   ingester:
