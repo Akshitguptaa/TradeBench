@@ -158,6 +158,8 @@ services:
     build:
       context: apps/bots
       dockerfile: Dockerfile
+    environment:
+      KAFKA_BROKERS: redpanda:9092
     networks:
     - tradebench
   ingester:

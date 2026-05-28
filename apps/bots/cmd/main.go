@@ -12,14 +12,15 @@ import (
 
 	"github.com/tradebench/bots/config"
 	"github.com/tradebench/bots/internal/consumer"
+	"github.com/tradebench/bots/internal/orchestrator"
 )
 
 func main() {
 	cfg := config.Load()
 
-	// placeholder handler
+	// Use orchestrator to manage bot workers and telemetry forwarding
 	handler := func(ctx context.Context, event consumer.RunStartedEvent, telemetryCh chan<- consumer.TelemetryEvent) {
-		log.Printf("bots: handler called for run_id=%s (placeholder - no orders sent yet)", event.RunID)
+		orchestrator.Run(ctx, event, telemetryCh)
 	}
 
 	cons := consumer.New(consumer.Config{
