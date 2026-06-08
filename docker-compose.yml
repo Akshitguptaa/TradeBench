@@ -103,9 +103,19 @@ services:
       dockerfile: Dockerfile
     ports:
     - 8080:8080
+    environment:
+      JWT_SECRET: dev-secret-change-me
+      SUBMISSION_URL: http://submission:8081
+      LEADERBOARD_URL: http://leaderboard:8085
+      INGESTER_URL: http://ingester:8084
+      SCORER_URL: http://scorer:8086
+      BOTS_URL: http://bots:8083
+      SANDBOX_URL: http://sandbox:8082
     depends_on:
-      redpanda:
-        condition: service_healthy
+      submission:
+        condition: service_started
+      leaderboard:
+        condition: service_started
     networks:
     - tradebench
   submission:
