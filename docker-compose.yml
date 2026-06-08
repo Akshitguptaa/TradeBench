@@ -167,7 +167,7 @@ services:
       context: apps/dummy-orderbook
       dockerfile: Dockerfile
     ports:
-    - 8080:8080
+    - 8089:8080
     networks:
     - tradebench
   ingester:
