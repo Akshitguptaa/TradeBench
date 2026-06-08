@@ -69,9 +69,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build Images
+      - name: Build Go service images
         run: |
-          for svc in gateway submission sandbox dummy-orderbook; do
+          for svc in gateway submission sandbox dummy-orderbook bots ingester leaderboard scorer; do
             echo "=== Docker Build $svc ==="
             docker build -t tradebench/$svc:ci apps/$svc
           done
