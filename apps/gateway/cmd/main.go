@@ -143,8 +143,12 @@ func main() {
 // skip auth for health checks and the token endpoint itself
 func jwtMiddleware(next http.Handler, jwtAuth *auth.JWTAuth) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Skip auth for health endpoint
 		if r.URL.Path == "/health" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		if r.URL.Path == "/ws/leaderboard" {
 			next.ServeHTTP(w, r)
 			return
 		}

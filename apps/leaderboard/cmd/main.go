@@ -60,7 +60,7 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})
-	mux.HandleFunc("/ws", wsHandler(h, rdb))
+	mux.HandleFunc("/ws/leaderboard", wsHandler(h, rdb))
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
