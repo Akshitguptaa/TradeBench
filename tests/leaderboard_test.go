@@ -42,7 +42,7 @@ func TestLeaderboardWebSocketIntegration(t *testing.T) {
 
 	wsURL := os.Getenv("LEADERBOARD_WS_URL")
 	if wsURL == "" {
-		wsURL = "ws://127.0.0.1:8085/ws"
+		wsURL = "ws://127.0.0.1:8085/ws/leaderboard"
 	}
 
 	broker := os.Getenv("KAFKA_BROKERS")

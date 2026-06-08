@@ -1,26 +1,80 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f4f4f0;
+  --foreground: #000000;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-neo-yellow: #fde047;
+  --color-neo-pink: #f9a8d4;
+  --color-neo-blue: #93c5fd;
+  --color-neo-green: #86efac;
+  --color-neo-purple: #d8b4fe;
+  
+  --shadow-neo: 5px 5px 0px 0px rgba(0,0,0,1);
+  --shadow-neo-hover: 7px 7px 0px 0px rgba(0,0,0,1);
+  --shadow-neo-active: 2px 2px 0px 0px rgba(0,0,0,1);
+  --shadow-neo-sm: 3px 3px 0px 0px rgba(0,0,0,1);
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
+  background-image: radial-gradient(circle at 2px 2px, rgba(0,0,0,0.07) 1px, transparent 0);
+  background-size: 20px 20px;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Neo-Brutalism Utilities */
+.neo-border {
+  border: 3px solid black;
+}
+
+.neo-shadow {
+  box-shadow: var(--shadow-neo);
+}
+
+.neo-shadow-sm {
+  box-shadow: var(--shadow-neo-sm);
+}
+
+.neo-button {
+  border: 3px solid black;
+  box-shadow: var(--shadow-neo);
+  transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.neo-button:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-neo-hover);
+}
+
+.neo-button:active:not(:disabled) {
+  transform: translate(5px, 5px);
+  box-shadow: var(--shadow-neo-active);
+}
+
+/* Custom scrollbar for leaderboard */
+.neo-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.neo-scroll::-webkit-scrollbar-track {
+  background: var(--background);
+  border-left: 3px solid black;
+}
+.neo-scroll::-webkit-scrollbar-thumb {
+  background: black;
+}
+
+/* Select dropdown arrow */
+.neo-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='black' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 36px;
 }
