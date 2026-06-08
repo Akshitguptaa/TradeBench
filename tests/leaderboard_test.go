@@ -42,12 +42,12 @@ func TestLeaderboardWebSocketIntegration(t *testing.T) {
 
 	wsURL := os.Getenv("LEADERBOARD_WS_URL")
 	if wsURL == "" {
-		wsURL = "ws://localhost:8085/ws"
+		wsURL = "ws://127.0.0.1:8085/ws"
 	}
 
 	broker := os.Getenv("KAFKA_BROKERS")
 	if broker == "" {
-		broker = "localhost:9092"
+		broker = "127.0.0.1:9092"
 	}
 	brokers := []string{broker}
 
@@ -57,7 +57,7 @@ func TestLeaderboardWebSocketIntegration(t *testing.T) {
 	defer c.Close()
 
 	// Read initial snapshot
-	c.SetReadDeadline(time.Now().Add(5 * time.Second))
+	_ = c.SetReadDeadline(time.Now().Add(5 * time.Second))
 	_, msg, err := c.ReadMessage()
 	require.NoError(t, err, "failed to read snapshot message")
 
@@ -105,7 +105,7 @@ func TestLeaderboardWebSocketIntegration(t *testing.T) {
 
 	// Wait for the websocket to receive the broadcasted update
 	updateReceived := false
-	c.SetReadDeadline(time.Now().Add(10 * time.Second))
+	_ = c.SetReadDeadline(time.Now().Add(10 * time.Second))
 	for {
 		_, msg, err := c.ReadMessage()
 		if err != nil {
