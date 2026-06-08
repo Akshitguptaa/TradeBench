@@ -3,6 +3,7 @@ package window
 import (
 	"sync"
 
+	"github.com/tradebench/ingester/internal/correctness"
 	"github.com/tradebench/ingester/internal/histogram"
 )
 
@@ -34,10 +35,10 @@ type runWindow struct {
 	contestantID  string
 	hist          *histogram.Histogram
 	orderCount    int64
-	correctCount  int64
-	startTimeNs   int64 // earliest sent_at_ns
-	lastEventNs   int64 // latest ack_at_ns
+	startTimeNs   int64
+	lastEventNs   int64
 	durationSecs  int
+	events        []correctness.FillEvent
 	mu            sync.Mutex
 }
 
@@ -78,20 +79,21 @@ func (m *Manager) AddEvent(event TelemetryEvent) {
 
 	w.orderCount++
 
-	// Track correctness (skip rejected orders — they don't produce fills)
 	if !event.Rejected {
-		if event.CorrectFill {
-			w.correctCount++
-		}
+		w.events = append(w.events, correctness.FillEvent{
+			OrderID:  event.OrderID,
+			Side:     "",
+			Type:     event.OrderType,
+			SentAtNs: event.SentAtNs,
+			Filled:   event.CorrectFill,
+		})
 	}
 
-	// Record latency = ack - sent
 	latencyNs := event.AckAtNs - event.SentAtNs
 	if latencyNs > 0 {
 		w.hist.Record(latencyNs)
 	}
 
-	// Track the time boundaries
 	if event.SentAtNs < w.startTimeNs {
 		w.startTimeNs = event.SentAtNs
 	}
@@ -156,10 +158,8 @@ func (w *runWindow) snapshot(runID string) RunSnapshot {
 		maxTPS = int64(float64(w.orderCount) / elapsedSec)
 	}
 
-	var correctness float64
-	if w.orderCount > 0 {
-		correctness = float64(w.correctCount) / float64(w.orderCount)
-	}
+	v := correctness.NewValidator()
+	correctnessRatio := v.Validate(w.events)
 
 	return RunSnapshot{
 		RunID:        runID,
@@ -168,6 +168,6 @@ func (w *runWindow) snapshot(runID string) RunSnapshot {
 		P90Ms:        w.hist.Percentile(90.0),
 		P99Ms:        w.hist.Percentile(99.0),
 		MaxTPS:       maxTPS,
-		Correctness:  correctness,
+		Correctness:  correctnessRatio,
 	}
 }
