@@ -37,7 +37,7 @@ func Load() Config {
 		BotsURL:        envOr("BOTS_URL", "http://bots:8083"),
 		IngesterURL:    envOr("INGESTER_URL", "http://ingester:8084"),
 		ScorerURL:      envOr("SCORER_URL", "http://scorer:8085"),
-		LeaderboardURL: envOr("LEADERBOARD_URL", "http://leaderboard:8086"),
+		LeaderboardURL: envOr("LEADERBOARD_URL", "http://leaderboard:8085"),
 		GlobalRPM:      envOrInt("GLOBAL_RPM", 100),
 		SubmissionRPM:  envOrInt("SUBMISSION_RPM", 10),
 	}
