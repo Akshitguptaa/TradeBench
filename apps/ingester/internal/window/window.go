@@ -9,14 +9,18 @@ import (
 
 // TelemetryEvent mirrors the JSON published by the bots service to telemetry.raw.
 type TelemetryEvent struct {
-	RunID       string `json:"run_id"`
-	BotID       string `json:"bot_id"`
-	OrderID     string `json:"order_id"`
-	SentAtNs    int64  `json:"sent_at_ns"`
-	AckAtNs     int64  `json:"ack_at_ns"`
-	CorrectFill bool   `json:"correct_fill"`
-	OrderType   string `json:"order_type"`
-	Rejected    bool   `json:"rejected"`
+	RunID       string  `json:"run_id"`
+	BotID       string  `json:"bot_id"`
+	OrderID     string  `json:"order_id"`
+	SentAtNs    int64   `json:"sent_at_ns"`
+	AckAtNs     int64   `json:"ack_at_ns"`
+	CorrectFill bool    `json:"correct_fill"`
+	OrderType   string  `json:"order_type"`
+	Rejected    bool    `json:"rejected"`
+	Symbol      string  `json:"symbol"`
+	Side        string  `json:"side"`
+	Price       float64 `json:"price,omitempty"`
+	Quantity    int     `json:"quantity"`
 }
 
 // RunSnapshot holds the final computed metrics for a completed run.
@@ -82,8 +86,11 @@ func (m *Manager) AddEvent(event TelemetryEvent) {
 	if !event.Rejected {
 		w.events = append(w.events, correctness.FillEvent{
 			OrderID:  event.OrderID,
-			Side:     "",
+			Symbol:   event.Symbol,
+			Side:     event.Side,
 			Type:     event.OrderType,
+			Quantity: event.Quantity,
+			Price:    event.Price,
 			SentAtNs: event.SentAtNs,
 			Filled:   event.CorrectFill,
 		})

@@ -46,6 +46,10 @@ func (b *Bot) SendOrder(ctx context.Context, runID, sandboxAddr string) consumer
 		AckAtNs:     0,
 		CorrectFill: false,
 		Rejected:    false,
+		Symbol:      order.Symbol,
+		Side:        order.Side,
+		Price:       order.Price,
+		Quantity:    order.Quantity,
 	}
 
 	payload, _ := json.Marshal(order)
