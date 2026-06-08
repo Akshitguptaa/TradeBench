@@ -30,7 +30,7 @@ jobs:
         run: echo "127.0.0.1 redpanda" | sudo tee -a /etc/hosts
 
       - name: Start integration services
-        run: docker compose up -d redpanda redis dummy-orderbook bots leaderboard
+        run: docker compose up -d redpanda redis minio dummy-orderbook bots leaderboard submission gateway
 
       - name: Wait for services to be ready
         run: sleep 15
