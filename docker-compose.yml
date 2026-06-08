@@ -220,5 +220,18 @@ services:
     build:
       context: apps/scorer
       dockerfile: Dockerfile
+    ports:
+    - 8086:8086
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+      REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: ""
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      redpanda-init:
+        condition: service_completed_successfully
     networks:
     - tradebench
