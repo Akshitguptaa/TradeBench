@@ -22,14 +22,18 @@ type RunStartedEvent struct {
 
 // produced by the bot workers and sent to Kafka.
 type TelemetryEvent struct {
-	RunID       string `json:"run_id"`
-	BotID       string `json:"bot_id"`
-	OrderID     string `json:"order_id"`
-	SentAtNs    int64  `json:"sent_at_ns"`
-	AckAtNs     int64  `json:"ack_at_ns"`
-	CorrectFill bool   `json:"correct_fill"`
-	OrderType   string `json:"order_type"`
-	Rejected    bool   `json:"rejected"`
+	RunID       string  `json:"run_id"`
+	BotID       string  `json:"bot_id"`
+	OrderID     string  `json:"order_id"`
+	SentAtNs    int64   `json:"sent_at_ns"`
+	AckAtNs     int64   `json:"ack_at_ns"`
+	CorrectFill bool    `json:"correct_fill"`
+	OrderType   string  `json:"order_type"`
+	Rejected    bool    `json:"rejected"`
+	Symbol      string  `json:"symbol"`
+	Side        string  `json:"side"`
+	Price       float64 `json:"price,omitempty"`
+	Quantity    int     `json:"quantity"`
 }
 
 // Handler is called for each RunStartedEvent. It receives a channel where
