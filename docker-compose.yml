@@ -192,6 +192,18 @@ services:
     build:
       context: apps/leaderboard
       dockerfile: Dockerfile
+    ports:
+    - 8085:8085
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+      REDIS_ADDR: redis:6379
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      redpanda-init:
+        condition: service_completed_successfully
     networks:
     - tradebench
   scorer:
