@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"testing"
 	"time"
 
@@ -13,6 +14,30 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// cleanupTestContestant removes a test contestant from both Redis leaderboard keys.
+func cleanupTestContestant(t *testing.T, contestantID string) {
+	t.Helper()
+	for _, key := range []string{"leaderboard:top", "tradebench:leaderboard"} {
+		cmd := exec.Command("docker", "compose", "exec", "-T", "redis", "redis-cli", "ZREM", key, contestantID)
+		cmd.Dir = os.Getenv("TRADEBENCH_ROOT")
+		if cmd.Dir == "" {
+			cmd.Dir = ".."
+		}
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Logf("cleanup ZREM %s %s: %v (%s)", key, contestantID, err, string(out))
+		}
+	}
+	// Also remove the metrics hash
+	cmd := exec.Command("docker", "compose", "exec", "-T", "redis", "redis-cli", "DEL", "leaderboard:metrics:"+contestantID)
+	cmd.Dir = os.Getenv("TRADEBENCH_ROOT")
+	if cmd.Dir == "" {
+		cmd.Dir = ".."
+	}
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Logf("cleanup DEL metrics %s: %v (%s)", contestantID, err, string(out))
+	}
+}
 
 type LeaderboardEntry struct {
 	Rank         int     `json:"rank"`
@@ -83,6 +108,8 @@ func TestLeaderboardWebSocketIntegration(t *testing.T) {
 	defer writer.Close()
 
 	contestantID := fmt.Sprintf("test-contestant-%d", time.Now().Unix())
+	t.Cleanup(func() { cleanupTestContestant(t, contestantID) })
+
 	scoreUpdate := ScoreUpdatedEvent{
 		ContestantID: contestantID,
 		RunID:        "run-test-id",
