@@ -13,10 +13,11 @@ const (
 
 // current status of a single submission.
 type Entry struct {
-	SubmissionID string `json:"submission_id"`
-	ContestantID string `json:"contestant_id"`
-	Status       State  `json:"status"`
-	RunID        string `json:"run_id,omitempty"`
+	SubmissionID string   `json:"submission_id"`
+	ContestantID string   `json:"contestant_id"`
+	Status       State    `json:"status"`
+	RunID        string   `json:"run_id,omitempty"`
+	Score        *float64 `json:"score,omitempty"`
 }
 
 // thread-safe in-memory submission status store
@@ -73,4 +74,30 @@ func (t *Tracker) Get(submissionID string) *Entry {
 
 	copy := *e
 	return &copy
+}
+
+// UpdateByRunID sets the status for a submission given its run_id.
+func (t *Tracker) UpdateByRunID(runID string, status State) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	for _, e := range t.entries {
+		if e.RunID == runID {
+			e.Status = status
+			return
+		}
+	}
+}
+
+// UpdateScoreByRunID sets the score for a submission given its run_id.
+func (t *Tracker) UpdateScoreByRunID(runID string, score float64) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	for _, e := range t.entries {
+		if e.RunID == runID {
+			e.Score = &score
+			return
+		}
+	}
 }

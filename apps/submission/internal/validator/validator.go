@@ -15,13 +15,15 @@ var allowedMIME = map[string]bool{
 	"application/zip":          true,
 	"text/x-csrc":              true,
 	"text/x-c":                 true,
+	"text/plain; charset=utf-8": true,
 }
 
 // allowedLanguages defines the programming languages we support
 var allowedLanguages = map[string]bool{
-	"cpp":  true,
-	"rust": true,
-	"go":   true,
+	"cpp":    true,
+	"rust":   true,
+	"go":     true,
+	"python": true,
 }
 
 type ValidationResult struct {
@@ -33,7 +35,7 @@ type ValidationResult struct {
 var (
 	ErrFileTooLarge    = errors.New("file exceeds maximum allowed size")
 	ErrInvalidMIME     = errors.New("unsupported file type")
-	ErrInvalidLanguage = errors.New("unsupported language; must be cpp, rust, or go")
+	ErrInvalidLanguage = errors.New("unsupported language; must be cpp, rust, go, or python")
 )
 
 // Validate checks if the uploaded file meets our security and size constraints

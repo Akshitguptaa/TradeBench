@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/tradebench/submission/config"
+	"github.com/tradebench/submission/internal/consumer"
 	"github.com/tradebench/submission/internal/handler"
 	"github.com/tradebench/submission/internal/queue"
 	"github.com/tradebench/submission/internal/status"
@@ -36,6 +38,18 @@ func main() {
 	// Handler
 	tracker := status.NewTracker()
 	uploadHandler := handler.NewUploadHandler(minioStore, producer, tracker, cfg.MaxFileSizeMB)
+
+	// Status Consumer
+	cons := consumer.New(consumer.Config{
+		Brokers:        cfg.KafkaBrokers,
+		StartedTopic:   "run.started",
+		CompletedTopic: "run.completed",
+		ScoreTopic:     "score.updated",
+		GroupID:        "submission-status-tracker",
+	}, tracker)
+	defer cons.Close()
+	
+	go cons.Run(context.Background())
 
 	// Routes
 	mux := http.NewServeMux()
