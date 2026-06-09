@@ -69,11 +69,11 @@ func New(cfg Config, handler Handler) *Consumer {
 	}
 }
 
-	// Run blocks forever, reading run.started events and dispatching them to the handler.
+// Run blocks forever, reading run.started events and dispatching them to the handler.
 func (c *Consumer) Run(ctx context.Context, publisherStartFunc func(context.Context, <-chan TelemetryEvent)) error {
 	log.Println("bots consumer: starting consume loop")
 	for {
-		msg, err := c.reader.FetchMessage(ctx)
+		msg, err := c.reader.ReadMessage(ctx)
 		if err != nil {
 			if ctx.Err() != nil {
 				return ctx.Err()

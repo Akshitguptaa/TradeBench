@@ -6,7 +6,7 @@ message SubmissionEvent {
   string submission_id = 1;
   string contestant_id = 2;
   string s3_key         = 3;
-  string language        = 4; // "cpp" | "rust" | "go"
+  string language        = 4; // "cpp" | "rust" | "go" | "python"
   int64  submitted_at    = 5; // unix millis
 }
 

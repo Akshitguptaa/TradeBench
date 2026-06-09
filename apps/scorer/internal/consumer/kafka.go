@@ -85,6 +85,8 @@ func (c *Consumer) Run(ctx context.Context) error {
 			ContestantID: event.ContestantID,
 			RunID:        event.RunID,
 			Score:        score,
+			P50Ms:        event.P50Ms,
+			P99Ms:        event.P99Ms,
 		}
 		if err := c.pub.Publish(ctx, scoreEvent); err != nil {
 			log.Printf("scorer: publish score.updated failed: %v", err)

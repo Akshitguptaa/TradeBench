@@ -36,14 +36,14 @@ type RunSnapshot struct {
 
 // runWindow accumulates telemetry for a single run.
 type runWindow struct {
-	contestantID  string
-	hist          *histogram.Histogram
-	orderCount    int64
-	startTimeNs   int64
-	lastEventNs   int64
-	durationSecs  int
-	events        []correctness.FillEvent
-	mu            sync.Mutex
+	contestantID string
+	hist         *histogram.Histogram
+	orderCount   int64
+	startTimeNs  int64
+	lastEventNs  int64
+	durationSecs int
+	events       []correctness.FillEvent
+	mu           sync.Mutex
 }
 
 // Manager tracks active run windows and detects when they complete.

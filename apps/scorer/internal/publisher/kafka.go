@@ -14,6 +14,8 @@ type ScoreUpdatedEvent struct {
 	ContestantID string  `json:"contestant_id"`
 	RunID        string  `json:"run_id"`
 	Score        float64 `json:"score"`
+	P50Ms        float64 `json:"p50_ms"`
+	P99Ms        float64 `json:"p99_ms"`
 }
 
 type KafkaPublisher struct {
