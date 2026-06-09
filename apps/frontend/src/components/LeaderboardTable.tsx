@@ -37,10 +37,11 @@ export function LeaderboardTable() {
       {/* Table */}
       <div className="flex flex-col">
         {/* Table Header */}
-        <div className="hidden sm:grid grid-cols-[56px_1fr_160px_100px] items-center px-6 py-3 border-b-3 border-black bg-[var(--background)] text-xs font-black uppercase tracking-wider text-black/50">
+        <div className="hidden sm:grid grid-cols-[56px_1fr_160px_90px_90px] items-center px-6 py-3 border-b-3 border-black bg-[var(--background)] text-xs font-black uppercase tracking-wider text-black/50">
           <div className="text-center">#</div>
           <div>Contestant</div>
           <div className="text-right">Score</div>
+          <div className="text-right">p50</div>
           <div className="text-right">p99</div>
         </div>
 
@@ -55,7 +56,7 @@ export function LeaderboardTable() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, transition: { duration: 0.15 } }}
                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                className={`grid grid-cols-[56px_1fr] sm:grid-cols-[56px_1fr_160px_100px] items-center px-6 py-3.5 border-b-2 border-black/10 hover:bg-[var(--color-neo-yellow)]/20 transition-colors ${
+                className={`grid grid-cols-[56px_1fr] sm:grid-cols-[56px_1fr_160px_90px_90px] items-center px-6 py-3.5 border-b-2 border-black/10 hover:bg-[var(--color-neo-yellow)]/20 transition-colors ${
                   index < 3 ? 'bg-[var(--color-neo-yellow)]/10' : ''
                 }`}
               >
@@ -82,7 +83,18 @@ export function LeaderboardTable() {
                   </div>
                 </div>
                 
-                {/* Latency */}
+                {/* P50 Latency */}
+                <div className="hidden sm:flex items-center justify-end pr-2">
+                  {entry.p50_ms ? (
+                    <span className="font-mono text-sm font-bold flex items-center gap-1">
+                      {entry.p50_ms.toFixed(1)}ms
+                    </span>
+                  ) : (
+                    <span className="text-sm text-black/20 font-bold">—</span>
+                  )}
+                </div>
+                
+                {/* P99 Latency */}
                 <div className="hidden sm:flex items-center justify-end">
                   {entry.p99_ms ? (
                     <span className="font-mono text-sm font-bold flex items-center gap-1">

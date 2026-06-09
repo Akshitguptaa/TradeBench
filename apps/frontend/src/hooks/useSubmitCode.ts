@@ -17,9 +17,13 @@ export function useSubmitCode() {
     }
   };
 
-  const pollStatus = useCallback(async (id: string) => {
+  const pollStatus = useCallback(async (id: string, token: string) => {
     try {
-      const res = await fetch(`/api/v1/submissions/${id}`);
+      const res = await fetch(`/api/v1/submissions/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (!res.ok) {
         if (res.status === 404) return; // Might not be available yet
         throw new Error('Failed to fetch status');
@@ -49,11 +53,29 @@ export function useSubmitCode() {
     const formData = new FormData();
     formData.append('contestant_id', contestantId);
     formData.append('language', language);
-    formData.append('code', file);
+    formData.append('file', file);
 
     try {
+      // 1. Authenticate to get a token for the gateway
+      const tokenRes = await fetch('/api/v1/auth/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contestant_id: contestantId })
+      });
+
+      if (!tokenRes.ok) {
+        throw new Error('Failed to authenticate');
+      }
+      
+      const tokenData = await tokenRes.json();
+      const token = tokenData.token;
+
+      // 2. Submit the code with the token
       const res = await fetch('/api/v1/submissions', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         body: formData,
       });
 
@@ -69,7 +91,7 @@ export function useSubmitCode() {
 
       // Start polling
       pollIntervalRef.current = setInterval(() => {
-        pollStatus(id);
+        pollStatus(id, token);
       }, 2000);
       
     } catch (err: any) {
