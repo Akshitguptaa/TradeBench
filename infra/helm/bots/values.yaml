@@ -18,3 +18,8 @@ resources:
     memory: 256Mi
 
 env: {}
+
+autoscaling:
+  minReplicas: 1
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70

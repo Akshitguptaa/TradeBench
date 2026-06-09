@@ -172,6 +172,7 @@ services:
       KAFKA_BROKERS: redpanda:9092
     networks:
     - tradebench
+    - sandbox-net
   dummy-orderbook:
     build:
       context: apps/dummy-orderbook
