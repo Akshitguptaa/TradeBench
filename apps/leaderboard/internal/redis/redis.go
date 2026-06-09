@@ -36,12 +36,17 @@ func (c *Client) Ping(ctx context.Context) error {
 	return c.rdb.Ping(ctx).Err()
 }
 
-// UpdateScore sets the score for a contestant in the sorted set.
-func (c *Client) UpdateScore(ctx context.Context, contestantID string, score float64) error {
-	return c.rdb.ZAdd(ctx, c.key, redis.Z{
+// UpdateScore sets the score and metrics for a contestant.
+func (c *Client) UpdateScore(ctx context.Context, contestantID string, score, p50, p99 float64) error {
+	pipe := c.rdb.TxPipeline()
+	pipe.ZAdd(ctx, c.key, redis.Z{
 		Score:  score,
 		Member: contestantID,
-	}).Err()
+	})
+	metricsKey := c.key + ":metrics:" + contestantID
+	pipe.HSet(ctx, metricsKey, "p50", p50, "p99", p99)
+	_, err := pipe.Exec(ctx)
+	return err
 }
 
 // Top50 fetches the top 50 contestants from the sorted set (highest score first).
@@ -52,11 +57,29 @@ func (c *Client) Top50(ctx context.Context) ([]hub.LeaderboardEntry, error) {
 	}
 
 	entries := make([]hub.LeaderboardEntry, 0, len(results))
+	pipe := c.rdb.Pipeline()
+	var hashCmds []*redis.MapStringStringCmd
+	for _, z := range results {
+		contestantID := z.Member.(string)
+		metricsKey := c.key + ":metrics:" + contestantID
+		hashCmds = append(hashCmds, pipe.HGetAll(ctx, metricsKey))
+	}
+	if len(hashCmds) > 0 {
+		_, _ = pipe.Exec(ctx)
+	}
+
 	for i, z := range results {
+		contestantID := z.Member.(string)
+		metrics := hashCmds[i].Val()
+		p50, _ := strconv.ParseFloat(metrics["p50"], 64)
+		p99, _ := strconv.ParseFloat(metrics["p99"], 64)
+
 		entries = append(entries, hub.LeaderboardEntry{
 			Rank:         i + 1,
-			ContestantID: z.Member.(string),
+			ContestantID: contestantID,
 			Score:        z.Score,
+			P50Ms:        p50,
+			P99Ms:        p99,
 		})
 	}
 	return entries, nil

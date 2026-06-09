@@ -60,7 +60,7 @@ func (c *Consumer) Run(ctx context.Context) error {
 	log.Println("leaderboard consumer: starting consume loop")
 
 	for {
-		msg, err := c.reader.FetchMessage(ctx)
+		msg, err := c.reader.ReadMessage(ctx)
 		if err != nil {
 			if ctx.Err() != nil {
 				return ctx.Err()
@@ -79,7 +79,7 @@ func (c *Consumer) Run(ctx context.Context) error {
 			event.ContestantID, event.Score)
 
 		// Update Redis sorted set
-		if err := c.redis.UpdateScore(ctx, event.ContestantID, event.Score); err != nil {
+		if err := c.redis.UpdateScore(ctx, event.ContestantID, event.Score, event.P50Ms, event.P99Ms); err != nil {
 			log.Printf("leaderboard consumer: redis update error: %v", err)
 		}
 
