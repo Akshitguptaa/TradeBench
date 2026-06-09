@@ -1,13 +1,22 @@
-.PHONY: dev dev-down proto build
+.PHONY: up down build proto migrate lint test seed smoke
 
-dev:
-	docker compose -f docker-compose.yml up --build
+up:
+	docker compose up --build -d
 
-dev-down:
+down:
 	docker compose down -v
 
 proto:
-	./scripts/gen-proto.sh
+	bash scripts/gen-proto.sh
 
 build:
 	docker compose build
+
+migrate:
+	bash scripts/migrate.sh
+
+test:
+	cd tests && go test -v -race -count=1 ./...
+
+smoke:
+	bash scripts/smoke-test.sh

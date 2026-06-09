@@ -3,7 +3,7 @@ package consumer
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"log"
 	"strings"
 	"time"
@@ -184,7 +184,7 @@ func (c *Consumer) Close() error {
 		errs = append(errs, err.Error())
 	}
 	if len(errs) > 0 {
-		return fmt.Errorf(strings.Join(errs, "; "))
+		return errors.New(strings.Join(errs, "; "))
 	}
 	return nil
 }
