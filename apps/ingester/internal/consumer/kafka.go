@@ -87,6 +87,7 @@ func (c *Consumer) Run(ctx context.Context) error {
 		}
 
 		c.manager.AddEvent(event)
+		_ = c.reader.CommitMessages(ctx, msg)
 	}
 }
 
@@ -122,4 +123,42 @@ func (c *Consumer) flushCompleted(ctx context.Context) {
 // Close shuts down the Kafka reader.
 func (c *Consumer) Close() error {
 	return c.reader.Close()
+}
+
+type RunStartedEvent struct {
+	RunID          string `json:"run_id"`
+	ContestantID   string `json:"contestant_id"`
+}
+
+// RunStartedLoop consumes run.started events to get contestant IDs.
+func (c *Consumer) RunStartedLoop(ctx context.Context, brokers, groupID string) error {
+	reader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:  strings.Split(brokers, ","),
+		Topic:    "run.started",
+		GroupID:  groupID + "-runstarted",
+		MinBytes: 1,
+		MaxBytes: 10e6,
+	})
+	defer reader.Close()
+
+	log.Println("ingester: starting run.started consume loop")
+	for {
+		msg, err := reader.FetchMessage(ctx)
+		if err != nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
+			log.Printf("ingester: fetch run.started error: %v", err)
+			continue
+		}
+
+		var event RunStartedEvent
+		if err := json.Unmarshal(msg.Value, &event); err != nil {
+			_ = reader.CommitMessages(ctx, msg)
+			continue
+		}
+
+		c.manager.SetContestantID(event.RunID, event.ContestantID)
+		_ = reader.CommitMessages(ctx, msg)
+	}
 }

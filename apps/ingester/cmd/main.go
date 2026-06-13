@@ -77,6 +77,12 @@ func main() {
 		}
 	}()
 
+	go func() {
+		if err := cons.RunStartedLoop(ctx, cfg.KafkaBrokers, cfg.ConsumerGroup); err != nil && ctx.Err() == nil {
+			log.Fatalf("ingester run.started consumer error: %v", err)
+		}
+	}()
+
 	log.Printf("ingester service listening on :%s", cfg.Port)
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 		log.Fatalf("ingester server error: %v", err)

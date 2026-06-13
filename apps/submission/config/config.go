@@ -18,6 +18,7 @@ type Config struct {
 	// Kafka configuration
 	KafkaBrokers string
 	KafkaTopic   string
+	FailedTopic  string
 
 	MaxFileSizeMB int //default 50
 }
@@ -32,6 +33,7 @@ func Load() Config {
 		MinioUseSSL:    envOrBool("MINIO_USE_SSL", false),
 		KafkaBrokers:   envOr("KAFKA_BROKERS", "kafka:9092"),
 		KafkaTopic:     envOr("KAFKA_TOPIC", "submission.queued"),
+		FailedTopic:    envOr("KAFKA_FAILED_TOPIC", "submission.failed"),
 		MaxFileSizeMB:  envOrInt("MAX_FILE_SIZE_MB", 50),
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/segmentio/kafka-go"
@@ -25,20 +26,18 @@ type SubmissionEvent struct {
 
 // submission through the sandbox pipeline.
 type Consumer struct {
+	cfg       Config
 	reader    *kafka.Reader
 	puller    *puller.MinioPuller
 	runner    *runner.Runner
 	publisher *publisher.KafkaPublisher
 	sem       chan struct{} // concurrency semaphore
-
-	defaultTargetRPS   int
-	defaultDurationSec int
-	defaultProtocol    string
 }
 
 type Config struct {
 	Brokers       string
 	Topic         string
+	FailedTopic   string
 	GroupID       string
 	MaxConcurrent int
 	TargetRPS     int
@@ -56,14 +55,12 @@ func New(cfg Config, p *puller.MinioPuller, r *runner.Runner, pub *publisher.Kaf
 	})
 
 	return &Consumer{
-		reader:             reader,
-		puller:             p,
-		runner:             r,
-		publisher:          pub,
-		sem:                make(chan struct{}, cfg.MaxConcurrent),
-		defaultTargetRPS:   cfg.TargetRPS,
-		defaultDurationSec: cfg.DurationSec,
-		defaultProtocol:    cfg.Protocol,
+		cfg:       cfg,
+		reader:    reader,
+		puller:    p,
+		runner:    r,
+		publisher: pub,
+		sem:       make(chan struct{}, cfg.MaxConcurrent),
 	}
 }
 
@@ -96,6 +93,14 @@ func (c *Consumer) Run(ctx context.Context) error {
 
 			if err := c.process(ctx, evt); err != nil {
 				log.Printf("consumer: process error submission_id=%s: %v", evt.SubmissionID, err)
+				
+				// publish a failed event so downstream knows this submission will never run
+				if pErr := c.publisher.PublishFailed(ctx, c.cfg.FailedTopic, publisher.SubmissionFailedEvent{
+					SubmissionID: evt.SubmissionID,
+					Error:        err.Error(),
+				}); pErr != nil {
+					log.Printf("consumer: error publishing failed event for %s: %v", evt.SubmissionID, pErr)
+				}
 			}
 
 			if err := c.reader.CommitMessages(ctx, m); err != nil {
@@ -126,9 +131,9 @@ func (c *Consumer) process(ctx context.Context, event SubmissionEvent) error {
 		SubmissionID:   event.SubmissionID,
 		ContestantID:   event.ContestantID,
 		SandboxAddress: address,
-		TargetRPS:      c.defaultTargetRPS,
-		DurationSecs:   c.defaultDurationSec,
-		Protocol:       c.defaultProtocol,
+		TargetRPS:      c.cfg.TargetRPS,
+		DurationSecs:   c.cfg.DurationSec,
+		Protocol:       c.cfg.Protocol,
 	}
 
 	if err := c.publisher.Publish(ctx, runEvent); err != nil {
@@ -136,6 +141,14 @@ func (c *Consumer) process(ctx context.Context, event SubmissionEvent) error {
 	}
 
 	log.Printf("consumer: published run.started run_id=%s submission_id=%s", runID, event.SubmissionID)
+
+	// Terminate sandbox container after the run completes + 30s grace period
+	go func(cid string, durSecs int) {
+		time.Sleep(time.Duration(durSecs+30) * time.Second)
+		_ = c.runner.TerminateSandbox(context.Background(), cid)
+		log.Printf("consumer: sandbox cleanup complete for container=%s", cid[:12])
+	}(containerID, c.cfg.DurationSec)
+
 	return nil
 }
 

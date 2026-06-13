@@ -30,3 +30,24 @@ func NewProxy(target string) http.Handler {
 
 	return rp
 }
+
+func NewWSProxy(target string) http.Handler {
+	u, err := url.Parse(target)
+	if err != nil {
+		log.Fatalf("proxy: invalid target URL %q: %v", target, err)
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.URL.Scheme = u.Scheme
+		if u.Scheme == "https" {
+			r.URL.Scheme = "wss"
+		} else {
+			r.URL.Scheme = "ws"
+		}
+		r.URL.Host = u.Host
+		r.Host = u.Host
+
+		rp := httputil.NewSingleHostReverseProxy(u)
+		rp.ServeHTTP(w, r)
+	})
+}

@@ -77,7 +77,7 @@ func (c *Consumer) Run(ctx context.Context) error {
 		log.Printf("scorer: run_id=%s contestant=%s score=%.2f (p99=%.1fms tps=%d correctness=%.2f)",
 			event.RunID, event.ContestantID, score, event.P99Ms, event.MaxTPS, event.Correctness)
 
-		if err := c.lb.Upsert(ctx, event.ContestantID, score); err != nil {
+		if err := c.lb.Upsert(ctx, event.ContestantID, score, event.P50Ms, event.P99Ms); err != nil {
 			log.Printf("scorer: redis upsert failed: %v", err)
 		}
 

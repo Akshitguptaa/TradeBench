@@ -36,8 +36,13 @@ func Run(ctx context.Context, event consumer.RunStartedEvent, telemetryCh chan<-
 		botID := fmt.Sprintf("bot-%s-%d", event.RunID[:8], i)
 		workerBot := bot.New(botID)
 
-		go func(b *bot.Bot) {
+		go func(b *bot.Bot, idx int) {
 			defer wg.Done()
+
+			// Stagger worker start times to prevent thundering herd
+			staggerDelay := time.Duration(idx) * (delayBetweenOrders / time.Duration(workerCount))
+			time.Sleep(staggerDelay)
+
 			ticker := time.NewTicker(delayBetweenOrders)
 			defer ticker.Stop()
 
@@ -58,7 +63,7 @@ func Run(ctx context.Context, event consumer.RunStartedEvent, telemetryCh chan<-
 					}
 				}
 			}
-		}(workerBot)
+		}(workerBot, i)
 	}
 
 	wg.Wait()

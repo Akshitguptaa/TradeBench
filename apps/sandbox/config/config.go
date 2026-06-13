@@ -12,6 +12,7 @@ type Config struct {
 	KafkaBrokers  string
 	ConsumeTopic  string
 	ProduceTopic  string
+	FailedTopic   string
 	ConsumerGroup string
 
 	// MinIO
@@ -46,6 +47,7 @@ func Load() Config {
 		KafkaBrokers:  envOr("KAFKA_BROKERS", "kafka:9092"),
 		ConsumeTopic:  envOr("SANDBOX_CONSUME_TOPIC", "submission.queued"),
 		ProduceTopic:  envOr("SANDBOX_PRODUCE_TOPIC", "run.started"),
+		FailedTopic:   envOr("SANDBOX_FAILED_TOPIC", "submission.failed"),
 		ConsumerGroup: envOr("SANDBOX_CONSUMER_GROUP", "sandbox-group"),
 
 		MinioEndpoint:  envOr("MINIO_ENDPOINT", "minio:9000"),

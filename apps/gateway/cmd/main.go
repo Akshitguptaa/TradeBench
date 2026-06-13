@@ -111,8 +111,9 @@ func main() {
 		leaderboardProxy.ServeHTTP(w, r)
 	})
 
+	wsLeaderboardProxy := proxy.NewWSProxy(cfg.LeaderboardURL)
 	mux.HandleFunc("/ws/leaderboard", func(w http.ResponseWriter, r *http.Request) {
-		leaderboardProxy.ServeHTTP(w, r)
+		wsLeaderboardProxy.ServeHTTP(w, r)
 	})
 
 	var handler http.Handler = mux
@@ -185,7 +186,7 @@ func jwtMiddleware(next http.Handler, jwtAuth *auth.JWTAuth) http.Handler {
 // submissionRateLimit applies a stricter rate limit specifically to the /api/v1/submissions path.
 func submissionRateLimit(next http.Handler, lim *ratelimit.Limiter, keyFn ratelimit.KeyFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/api/v1/submissions") {
+		if r.URL.Path == "/api/v1/submissions" && r.Method == http.MethodPost {
 			key := keyFn(r)
 			if key != "" && !lim.Allow(key) {
 				http.Error(w, `{"error":"submission rate limit exceeded"}`, http.StatusTooManyRequests)

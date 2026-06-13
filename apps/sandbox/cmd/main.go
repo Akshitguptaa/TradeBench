@@ -55,6 +55,7 @@ func main() {
 	cons := consumer.New(consumer.Config{
 		Brokers:       cfg.KafkaBrokers,
 		Topic:         cfg.ConsumeTopic,
+		FailedTopic:   cfg.FailedTopic,
 		GroupID:       cfg.ConsumerGroup,
 		MaxConcurrent: cfg.MaxConcurrent,
 		TargetRPS:     cfg.DefaultTargetRPS,

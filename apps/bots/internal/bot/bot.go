@@ -77,8 +77,19 @@ func (b *Bot) SendOrder(ctx context.Context, runID, sandboxAddr string) consumer
 		return event
 	}
 
-	// change after
-	event.CorrectFill = true
+	var res struct {
+		Fill   *bool  `json:"fill"`
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&res); err == nil {
+		if res.Fill != nil {
+			event.CorrectFill = *res.Fill
+		} else {
+			event.CorrectFill = true
+		}
+	} else {
+		event.CorrectFill = true
+	}
 
 	return event
 }

@@ -45,6 +45,7 @@ func main() {
 		StartedTopic:   "run.started",
 		CompletedTopic: "run.completed",
 		ScoreTopic:     "score.updated",
+		FailedTopic:    cfg.FailedTopic,
 		GroupID:        "submission-status-tracker",
 	}, tracker)
 	defer cons.Close()

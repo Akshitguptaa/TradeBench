@@ -29,14 +29,25 @@ func New(addr, password string) *RedisLeaderboard {
 }
 
 // Upsert adds or updates a contestant's score. Only keeps the best score.
-func (lb *RedisLeaderboard) Upsert(ctx context.Context, contestantID string, score float64) error {
+func (lb *RedisLeaderboard) Upsert(ctx context.Context, contestantID string, score, p50Ms, p99Ms float64) error {
 	// ZADD with GT flag — only update if new score is greater than existing
-	err := lb.client.ZAddGT(ctx, leaderboardKey, redis.Z{
+	cmd := lb.client.ZAddGT(ctx, leaderboardKey, redis.Z{
 		Score:  score,
 		Member: contestantID,
-	}).Err()
-	if err != nil {
-		return fmt.Errorf("leaderboard upsert: %w", err)
+	})
+	if cmd.Err() != nil {
+		return fmt.Errorf("leaderboard upsert: %w", cmd.Err())
+	}
+
+	if cmd.Val() > 0 {
+		// The score was updated (or added), so update the metrics hash as well
+		metricsKey := fmt.Sprintf("tradebench:metrics:%s", contestantID)
+		if err := lb.client.HSet(ctx, metricsKey, map[string]interface{}{
+			"p50_ms": p50Ms,
+			"p99_ms": p99Ms,
+		}).Err(); err != nil {
+			return fmt.Errorf("metrics hash upsert: %w", err)
+		}
 	}
 	return nil
 }

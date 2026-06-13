@@ -10,7 +10,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"path/filepath"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -84,7 +83,7 @@ func (d *realDockerClient) copyToContainer(ctx context.Context, containerID, src
 	var buf bytes.Buffer
 	tw := tar.NewWriter(&buf)
 	hdr := &tar.Header{
-		Name: filepath.Base(srcPath),
+		Name: "binary",
 		Mode: 0755,
 		Size: int64(len(content)),
 	}
