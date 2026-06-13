@@ -19,10 +19,10 @@ export function useLeaderboard() {
     // Since gateway tests showed WS needs auth if configured, but let's assume it works or we need to pass a token
     // The problem statement didn't specify JWT required for leaderboard WS if we don't have it, but gateway might enforce it.
     // For now, let's connect directly.
-    
+
     // Use relative URL if using next rewrites, but WS rewrites in Next.js app router are tricky.
-    // We'll use the absolute URL to the gateway.
-    const wsUrl = `ws://localhost:8080/ws/leaderboard`;
+    const wsBase = process.env.NEXT_PUBLIC_WS_BASE || 'ws://localhost:8080';
+    const wsUrl = `${wsBase}/ws/leaderboard`;
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 

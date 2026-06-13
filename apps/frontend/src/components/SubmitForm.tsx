@@ -122,6 +122,11 @@ export function SubmitForm() {
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
                 />
               </label>
+              {['go', 'cpp', 'rust'].includes(language) && (
+                <div className="text-xs font-bold text-black/60 bg-black/5 px-3 py-2 neo-border mt-2">
+                  <span className="text-red-600 font-black">NOTE:</span> You must upload a statically compiled Linux binary for this language (e.g. <code>go build -o bot bot.go</code>). Do not upload source code files.
+                </div>
+              )}
             </div>
 
             {/* Submit Button */}

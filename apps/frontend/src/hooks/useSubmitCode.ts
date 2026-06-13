@@ -7,13 +7,18 @@ export function useSubmitCode() {
   const [error, setError] = useState<string | null>(null);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const [score, setScore] = useState<number | null>(null);
-  
+
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const clearPolling = () => {
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
       pollIntervalRef.current = null;
+    }
+    if (pollTimeoutRef.current) {
+      clearTimeout(pollTimeoutRef.current);
+      pollTimeoutRef.current = null;
     }
   };
 
@@ -29,9 +34,9 @@ export function useSubmitCode() {
         throw new Error('Failed to fetch status');
       }
       const data = await res.json();
-      
+
       setStatus(data.status);
-      
+
       if (data.status === 'completed' || data.status === 'failed') {
         clearPolling();
         if (data.score !== undefined) {
@@ -66,7 +71,7 @@ export function useSubmitCode() {
       if (!tokenRes.ok) {
         throw new Error('Failed to authenticate');
       }
-      
+
       const tokenData = await tokenRes.json();
       const token = tokenData.token;
 
@@ -89,11 +94,19 @@ export function useSubmitCode() {
       setSubmissionId(id);
       setStatus('queued');
 
-      // Start polling
+      // Start polling (1s interval for snappy updates)
       pollIntervalRef.current = setInterval(() => {
         pollStatus(id, token);
-      }, 2000);
-      
+      }, 1000);
+
+      // Safety timeout: if submission doesn't complete within 3 minutes,
+      // stop polling and report failure so the UI doesn't spin forever.
+      pollTimeoutRef.current = setTimeout(() => {
+        clearPolling();
+        setStatus('failed');
+        setError('Submission timed out — the run did not complete within 3 minutes. Please try again.');
+      }, 180_000);
+
     } catch (err: any) {
       setStatus('error');
       setError(err.message || 'An error occurred');
