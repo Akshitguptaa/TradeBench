@@ -1,6 +1,6 @@
 module github.com/tradebench/ingester
 
-go 1.26.3
+go 1.25.0
 
 require (
 	github.com/HdrHistogram/hdrhistogram-go v1.2.0

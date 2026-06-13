@@ -14,6 +14,13 @@ build:
 
 migrate:
 	bash scripts/migrate.sh
+lint:
+	@echo "Linting Go modules..."
+	@for mod in $$(find . -name go.mod -not -path "*/\.*"); do \
+		dir=$$(dirname "$$mod"); \
+		echo "Linting $$dir..."; \
+		(cd "$$dir" && go vet ./...); \
+	done
 
 test:
 	cd tests && go test -v -race -count=1 ./...
