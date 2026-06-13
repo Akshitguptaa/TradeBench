@@ -3,6 +3,7 @@
 import React from 'react';
 import { SubmitForm } from '../components/SubmitForm';
 import { LeaderboardTable } from '../components/LeaderboardTable';
+import { Book } from 'lucide-react';
 
 function GithubIcon() {
   return (
@@ -18,13 +19,21 @@ export default function Home() {
       {/* Header */}
       <header className="border-b-3 border-black bg-[var(--color-neo-yellow)] sticky top-0 z-50">
         <div className="px-8 lg:px-16 py-5 flex items-center justify-between gap-6">
-          <div className="min-w-0">
-            <h1 className="text-4xl sm:text-5xl font-black uppercase tracking-tighter">
-              TradeBench
-            </h1>
-            <p className="mt-1 font-bold text-base text-black/70">
-              Submit your trading bot. Climb the live leaderboard.
-            </p>
+          <div className="min-w-0 flex items-center">
+            <svg width="40" height="40" viewBox="0 0 100 100" className="mr-4 shrink-0">
+              <rect x="16" y="16" width="72" height="72" fill="#000000" />
+              <rect x="4" y="4" width="72" height="72" fill="#ccff00" stroke="#000000" strokeWidth="8" />
+              <polyline points="16,60 34,36 48,48 64,24" fill="none" stroke="#000000" strokeWidth="8" strokeLinejoin="miter" strokeLinecap="square" />
+              <circle cx="64" cy="24" r="5" fill="#ff00ff" stroke="#000000" strokeWidth="4" />
+            </svg>
+            <div>
+              <h1 className="text-4xl sm:text-5xl font-black uppercase tracking-tighter">
+                TradeBench
+              </h1>
+              <p className="mt-1 font-bold text-base text-black/70">
+                Submit your trading bot. Climb the live leaderboard.
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-4 shrink-0">
             <div className="hidden sm:flex items-center gap-2 bg-white neo-border px-3 py-1.5 neo-shadow-sm">
@@ -39,6 +48,13 @@ export default function Home() {
               title="View on GitHub"
             >
               <GithubIcon />
+            </a>
+            <a
+              href="#"
+              className="flex items-center justify-center w-10 h-10 bg-[var(--color-neo-blue)] neo-border hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all"
+              title="Documentation"
+            >
+              <Book size={20} strokeWidth={2.5} className="text-black" />
             </a>
           </div>
         </div>
@@ -56,6 +72,13 @@ export default function Home() {
           <LeaderboardTable />
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="border-t-3 border-black bg-white px-8 lg:px-16 py-4 flex items-center justify-center">
+        <p className="font-black text-sm uppercase tracking-wider text-black/70">
+          © {new Date().getFullYear()} TradeBench. All rights reserved.
+        </p>
+      </footer>
     </div>
   );
 }

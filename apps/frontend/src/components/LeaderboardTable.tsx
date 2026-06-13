@@ -1,10 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLeaderboard } from '../hooks/useLeaderboard';
-import { Trophy, Zap } from 'lucide-react';
+import { Trophy, Zap, RefreshCw } from 'lucide-react';
 
 export function LeaderboardTable() {
-  const { entries, isConnected } = useLeaderboard();
+  const { entries, isConnected, reconnect } = useLeaderboard();
 
   const maxScore = entries.length > 0 ? Math.max(...entries.map(e => e.score)) : 100;
   const safeMax = maxScore > 0 ? maxScore : 1;
@@ -26,11 +26,20 @@ export function LeaderboardTable() {
           <Trophy size={22} strokeWidth={2.5} />
           Leaderboard
         </h2>
-        <div className="flex items-center gap-2 bg-white neo-border px-3 py-1.5">
-          <span className={`w-2.5 h-2.5 rounded-full border-2 border-black ${isConnected ? 'bg-green-400 animate-pulse' : 'bg-red-500'}`} />
-          <span className="text-xs font-black uppercase tracking-wider">
-            {isConnected ? 'Live' : 'Off'}
-          </span>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={reconnect}
+            className="flex items-center justify-center w-8 h-8 bg-white neo-border hover:-translate-y-0.5 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0 active:shadow-none transition-all"
+            title="Refresh Leaderboard"
+          >
+            <RefreshCw size={16} strokeWidth={2.5} />
+          </button>
+          <div className="flex items-center gap-2 bg-white neo-border px-3 py-1.5">
+            <span className={`w-2.5 h-2.5 rounded-full border-2 border-black ${isConnected ? 'bg-green-400 animate-pulse' : 'bg-red-500'}`} />
+            <span className="text-xs font-black uppercase tracking-wider">
+              {isConnected ? 'Live' : 'Off'}
+            </span>
+          </div>
         </div>
       </div>
       

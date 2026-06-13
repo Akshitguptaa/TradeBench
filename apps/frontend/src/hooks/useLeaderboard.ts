@@ -70,6 +70,16 @@ export function useLeaderboard() {
     };
   }, []);
 
+  const reconnect = useCallback(() => {
+    if (wsRef.current) {
+      wsRef.current.onclose = null;
+      wsRef.current.close();
+      setIsConnected(false);
+    }
+    if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+    connect();
+  }, [connect]);
+
   useEffect(() => {
     connect();
     return () => {
@@ -81,5 +91,5 @@ export function useLeaderboard() {
     };
   }, [connect]);
 
-  return { entries, isConnected };
+  return { entries, isConnected, reconnect };
 }
