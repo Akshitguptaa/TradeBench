@@ -38,8 +38,6 @@ services:
       POSTGRES_DB: tradebench
       POSTGRES_USER: tradebench
       POSTGRES_PASSWORD: tradebench
-    ports:
-    - 5432:5432
     volumes:
     - timescale-data:/var/lib/postgresql/data
     - ./infra/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
@@ -73,7 +71,7 @@ services:
       MINIO_ROOT_USER: tradebench
       MINIO_ROOT_PASSWORD: tradebench123
     ports:
-    - 9005:9000
+    - 9000:9000
     - 9006:9001
     volumes:
     - minio-data:/data
@@ -187,6 +185,7 @@ services:
       dockerfile: Dockerfile
     ports:
     - 8084:8084
+    restart: on-failure
     environment:
       KAFKA_BROKERS: redpanda:9092
       TIMESCALE_DSN: postgres://tradebench:tradebench@timescaledb:5432/tradebench?sslmode=disable

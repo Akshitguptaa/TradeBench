@@ -16,7 +16,7 @@ type Writer struct {
 	pool *pgxpool.Pool
 }
 
-// NewWriter creates a connection pool to TimescaleDB.
+// NewWriter creates a connection pool to TimescaleDB with retry logic.
 func NewWriter(ctx context.Context, dsn string) (*Writer, error) {
 	config, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
@@ -28,15 +28,33 @@ func NewWriter(ctx context.Context, dsn string) (*Writer, error) {
 	config.MaxConnLifetime = 30 * time.Minute
 	config.MaxConnIdleTime = 5 * time.Minute
 
-	pool, err := pgxpool.NewWithConfig(ctx, config)
-	if err != nil {
-		return nil, fmt.Errorf("connect to timescaledb: %w", err)
-	}
+	const maxRetries = 10
+	const retryDelay = 2 * time.Second
 
-	// verify connectivity
-	if err := pool.Ping(ctx); err != nil {
-		pool.Close()
-		return nil, fmt.Errorf("ping timescaledb: %w", err)
+	var pool *pgxpool.Pool
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		pool, err = pgxpool.NewWithConfig(ctx, config)
+		if err != nil {
+			log.Printf("db: connection attempt %d/%d failed: %v", attempt, maxRetries, err)
+			if attempt < maxRetries {
+				time.Sleep(retryDelay)
+				continue
+			}
+			return nil, fmt.Errorf("connect to timescaledb after %d attempts: %w", maxRetries, err)
+		}
+
+		// verify connectivity
+		if err = pool.Ping(ctx); err != nil {
+			pool.Close()
+			log.Printf("db: ping attempt %d/%d failed: %v", attempt, maxRetries, err)
+			if attempt < maxRetries {
+				time.Sleep(retryDelay)
+				continue
+			}
+			return nil, fmt.Errorf("ping timescaledb after %d attempts: %w", maxRetries, err)
+		}
+
+		break
 	}
 
 	log.Println("db: connected to TimescaleDB")
