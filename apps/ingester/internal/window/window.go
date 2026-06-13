@@ -2,6 +2,7 @@ package window
 
 import (
 	"sync"
+	"time"
 
 	"github.com/tradebench/ingester/internal/correctness"
 	"github.com/tradebench/ingester/internal/histogram"
@@ -42,6 +43,7 @@ type runWindow struct {
 	startTimeNs  int64
 	lastEventNs  int64
 	durationSecs int
+	createdAt    time.Time
 	events       []correctness.FillEvent
 	mu           sync.Mutex
 }
@@ -49,6 +51,7 @@ type runWindow struct {
 // Manager tracks active run windows and detects when they complete.
 type Manager struct {
 	windows            map[string]*runWindow
+	contestantIDs      map[string]string // run_id → contestant_id (survives event ordering races)
 	mu                 sync.Mutex
 	defaultDurationSec int
 }
@@ -59,6 +62,7 @@ type Manager struct {
 func NewManager(defaultDurationSec int) *Manager {
 	return &Manager{
 		windows:            make(map[string]*runWindow),
+		contestantIDs:      make(map[string]string),
 		defaultDurationSec: defaultDurationSec,
 	}
 }
@@ -69,10 +73,15 @@ func (m *Manager) AddEvent(event TelemetryEvent) {
 	m.mu.Lock()
 	w, ok := m.windows[event.RunID]
 	if !ok {
+		// Check if we already know the contestant from a run.started event
+		// that arrived before any telemetry.
+		contestantID := m.contestantIDs[event.RunID]
 		w = &runWindow{
+			contestantID: contestantID,
 			hist:         histogram.New(),
 			startTimeNs:  event.SentAtNs,
 			durationSecs: m.defaultDurationSec,
+			createdAt:    time.Now(),
 		}
 		m.windows[event.RunID] = w
 	}
@@ -109,18 +118,22 @@ func (m *Manager) AddEvent(event TelemetryEvent) {
 	}
 }
 
-// SetContestantID associates a contestant with a run. Called when we can
-// infer the contestant from the first event or from external context.
+// SetContestantID associates a contestant with a run. Called when we receive
+// a run.started event. Stores the mapping in a separate map so it survives
+// event ordering races (run.started arriving before telemetry events).
 func (m *Manager) SetContestantID(runID, contestantID string) {
 	m.mu.Lock()
+	// Always store in the lookup map so AddEvent can use it later
+	m.contestantIDs[runID] = contestantID
 	w, ok := m.windows[runID]
 	m.mu.Unlock()
-	if !ok {
-		return
+
+	// If the window already exists, update it directly too
+	if ok {
+		w.mu.Lock()
+		w.contestantID = contestantID
+		w.mu.Unlock()
 	}
-	w.mu.Lock()
-	w.contestantID = contestantID
-	w.mu.Unlock()
 }
 
 // CheckCompleted scans all active windows and returns snapshots for any
@@ -138,6 +151,7 @@ func (m *Manager) CheckCompleted() []RunSnapshot {
 			completed = append(completed, snap)
 			w.mu.Unlock()
 			delete(m.windows, runID)
+			delete(m.contestantIDs, runID)
 		} else {
 			w.mu.Unlock()
 		}
@@ -152,9 +166,9 @@ func (w *runWindow) isComplete() bool {
 	if w.orderCount == 0 {
 		return false
 	}
-	elapsedNs := w.lastEventNs - w.startTimeNs
-	elapsedSec := elapsedNs / 1e9
-	return elapsedSec >= int64(w.durationSecs)
+	// Give the window 2 extra seconds to ensure all straggling events are ingested
+	// before declaring it complete.
+	return time.Since(w.createdAt).Seconds() >= float64(w.durationSecs+2)
 }
 
 // snapshot computes final metrics. Must be called with w.mu held.

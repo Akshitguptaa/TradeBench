@@ -50,7 +50,7 @@ export function LeaderboardTable() {
           <AnimatePresence>
             {entries.map((entry, index) => (
               <motion.div
-                key={entry.contestant_id}
+                key={entry.contestant_id || `rank-${entry.rank}`}
                 layout
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -66,8 +66,8 @@ export function LeaderboardTable() {
                 </div>
                 
                 {/* Contestant Name */}
-                <div className="font-bold text-base truncate pr-4">
-                  {entry.contestant_id}
+                <div className={`font-bold text-base truncate pr-4 ${!entry.contestant_id ? 'text-black/30 italic' : ''}`}>
+                  {entry.contestant_id || 'Unknown'}
                 </div>
                 
                 {/* Score + Bar */}
