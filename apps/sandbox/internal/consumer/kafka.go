@@ -118,7 +118,7 @@ func (c *Consumer) process(ctx context.Context, event SubmissionEvent) error {
 	}
 	defer c.puller.Cleanup(event.SubmissionID)
 
-	containerID, address, err := c.runner.SpawnSandbox(ctx, event.SubmissionID, binaryPath)
+	containerID, address, err := c.runner.SpawnSandbox(ctx, event.SubmissionID, binaryPath, event.Language)
 	if err != nil {
 		return fmt.Errorf("spawn sandbox: %w", err)
 	}

@@ -20,7 +20,7 @@ func New(cfg SandboxConfig) (*Runner, error) {
 	}, nil
 }
 
-func (s *stubDockerClient) createContainer(_ context.Context, _ SandboxConfig, name string) (string, error) {
+func (s *stubDockerClient) createContainer(_ context.Context, _ SandboxConfig, name, _ string) (string, error) {
 	return "", fmt.Errorf("createContainer(%s): %w", name, ErrUnsupportedPlatform)
 }
 

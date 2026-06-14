@@ -25,7 +25,7 @@ type Runner struct {
 
 // abstracts docker operations so we can stub it on non-linux
 type dockerClient interface {
-	createContainer(ctx context.Context, cfg SandboxConfig, containerName string) (string, error)
+	createContainer(ctx context.Context, cfg SandboxConfig, containerName, language string) (string, error)
 	copyToContainer(ctx context.Context, containerID, srcPath, dstDir string) error
 	startContainer(ctx context.Context, containerID string) error
 	inspectContainerIP(ctx context.Context, containerID, networkName string) (string, error)
@@ -35,10 +35,10 @@ type dockerClient interface {
 
 // SpawnSandbox creates a container, copies the binary in, starts it, and waits
 // until the process inside is healthy. If any step fails, it tears down whatever was created.
-func (r *Runner) SpawnSandbox(ctx context.Context, submissionID, binaryPath string) (containerID, address string, err error) {
+func (r *Runner) SpawnSandbox(ctx context.Context, submissionID, binaryPath, language string) (containerID, address string, err error) {
 	containerName := fmt.Sprintf("sandbox-%s", submissionID)
 
-	containerID, err = r.docker.createContainer(ctx, r.cfg, containerName)
+	containerID, err = r.docker.createContainer(ctx, r.cfg, containerName, language)
 	if err != nil {
 		return "", "", fmt.Errorf("container create: %w", err)
 	}

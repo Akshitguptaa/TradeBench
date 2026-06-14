@@ -34,13 +34,18 @@ func New(cfg SandboxConfig) (*Runner, error) {
 }
 
 // creates a hardened container: all caps dropped, no privilege escalation, cgroup limits enforced
-func (d *realDockerClient) createContainer(ctx context.Context, cfg SandboxConfig, containerName string) (string, error) {
+func (d *realDockerClient) createContainer(ctx context.Context, cfg SandboxConfig, containerName, language string) (string, error) {
 	pidsLimit := cfg.PidsLimit
+
+	cmd := []string{"/opt/binary"}
+	if language == "python" {
+		cmd = []string{"python3", "/opt/binary"}
+	}
 
 	resp, err := d.cli.ContainerCreate(ctx,
 		&container.Config{
 			Image: cfg.Image,
-			Cmd:   []string{"/opt/binary"},
+			Cmd:   cmd,
 			ExposedPorts: nat.PortSet{
 				"8080/tcp": {},
 			},
