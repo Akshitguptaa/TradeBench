@@ -78,12 +78,15 @@ func (b *Bot) SendOrder(ctx context.Context, runID, sandboxAddr string) consumer
 	}
 
 	var res struct {
-		Fill   *bool  `json:"fill"`
-		Status string `json:"status"`
+		CorrectFill *bool  `json:"correct_fill"`
+		Status      string `json:"status"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&res); err == nil {
-		if res.Fill != nil {
-			event.CorrectFill = *res.Fill
+		if res.Status == "rejected" {
+			event.Rejected = true
+			event.CorrectFill = false
+		} else if res.CorrectFill != nil {
+			event.CorrectFill = *res.CorrectFill
 		} else {
 			event.CorrectFill = true
 		}
