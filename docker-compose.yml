@@ -65,7 +65,9 @@ services:
       interval: 5s
       retries: 10
   minio:
-    image: minio/minio:latest
+    build:
+      context: infra/images/minio
+      dockerfile: Dockerfile
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: tradebench
