@@ -137,6 +137,14 @@ services:
       MINIO_SECRET_KEY: tradebench123
       MINIO_BUCKET: tradebench
       KAFKA_BROKERS: redpanda:9092
+  sandbox-base:
+    build:
+      context: infra/images/sandbox-base
+      dockerfile: Dockerfile
+    image: tradebench/sandbox-base:latest
+    entrypoint: ["true"]
+    networks:
+    - tradebench
   sandbox:
     build:
       context: apps/sandbox
@@ -153,6 +161,8 @@ services:
     volumes:
     - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
+      sandbox-base:
+        condition: service_completed_successfully
       redpanda:
         condition: service_healthy
       minio:
